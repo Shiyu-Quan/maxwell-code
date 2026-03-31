@@ -1,0 +1,1230 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Python API &#8212; MaxLab 1.1.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=b3e8092d"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'section_faq/subsections/api_python';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="C++ API" href="api_cpp.html" />
+    <link rel="prev" title="FAQ" href="../faq.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="1.1.0" />
+    <meta name="docbuild:last-update" content="Jul 31, 2025"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/logo_maxwell.png" class="logo__image only-light" alt="MaxLab 1.1.0 documentation - Home"/>
+    <img src="../../_static/logo_maxwell.png" class="logo__image only-dark pst-js-only" alt="MaxLab 1.1.0 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../index.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../tutorial_index.html">
+    Tutorial
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../section_api/api.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../faq.html">
+    FAQ
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/examples.html">
+    Examples
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../glossary.html">
+    Glossary
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+    <button class="pst-navbar-icon sidebar-toggle secondary-toggle" aria-label="On this page">
+      <span class="fa-solid fa-outdent"></span>
+    </button>
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../index.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../tutorial_index.html">
+    Tutorial
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../section_api/api.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../faq.html">
+    FAQ
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../examples/examples.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../glossary.html">
+    Glossary
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="current reference internal" href="#">Python API</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="simple">
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="api_cpp.html">C++ API</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../faq.html" class="nav-link">FAQ</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Python API</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="python-api">
+<span id="faq-section-api-python"></span><h1>Python API<a class="headerlink" href="#python-api" title="Link to this heading">#</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<section id="general">
+<h2>General<a class="headerlink" href="#general" title="Link to this heading">#</a></h2>
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Where can I find the Python examples?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">The Python examples can be found in the <a class="reference external" href="file:///home/mxwbio/MaxLab/share/python/">example folder</a> of the MaxLab
+Live installation directory.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How do I design custom electrode configurations and utilize a custom configuration file?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">To design custom electrode configurations, we use the class <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.chip.Array" title="maxlab.chip.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.Array</span></code></a> and the following code, which
+saves the custom configuration into a file called <cite>myConfig.cfg</cite>. When instantiating an array object,
+make sure that the server is running.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="n">array</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="s1">&#39;online&#39;</span><span class="p">)</span>
+<span class="linenos">2</span><span class="n">array</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="linenos">3</span><span class="n">array</span><span class="o">.</span><span class="n">select_electrodes</span><span class="p">(</span> <span class="p">[</span><span class="mi">11110</span><span class="p">,</span> <span class="mi">11111</span><span class="p">,</span> <span class="mi">11112</span><span class="p">]</span> <span class="p">)</span>
+<span class="linenos">4</span><span class="n">array</span><span class="o">.</span><span class="n">route</span><span class="p">()</span>
+<span class="linenos">5</span><span class="n">array</span><span class="o">.</span><span class="n">save_config</span><span class="p">(</span><span class="s2">&quot;myConfig.cfg&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="sd-card-text">In order to use the custom electrode configuration file, we can run the following code:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="n">array</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="s1">&#39;stimulation&#39;</span><span class="p">)</span>
+<span class="linenos">2</span><span class="n">array</span><span class="o">.</span><span class="n">load_config</span><span class="p">(</span> <span class="s2">&quot;myConfig.cfg&quot;</span> <span class="p">)</span>
+</pre></div>
+</div>
+<p class="sd-card-text">Custom configurations files can also be generated in Scope, by selecting a custom electrode configuration
+and then clicking “Route”. The corresponding <code class="docutils literal notranslate"><span class="pre">.cfg</span></code> file can then be found in <code class="docutils literal notranslate"><span class="pre">~/configs/[date]/[time].cfg</span></code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p class="sd-card-text">Currently, there is no way to distinguish between readout and stimulation electrodes when
+creating array configurations.</p>
+</div>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How can I prevent multiple electrodes from routing to the same channel?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">This can’t be done, as the routing is conducted automatically. However, if
+multiple electrodes are routed to the same channel, a workaround would be to
+pick electrodes next to the ones already picked: This way, the chances that
+the electrodes will again be routed to the same channel is minimized.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">What are <code class="code docutils literal notranslate"><span class="pre">groups</span></code> for when saving data to H5 files?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">The relevant API call is <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.saving.Saving.group_define" title="maxlab.saving.Saving.group_define"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mx.Saving.group_define()</span></code></a>. Please refer
+to the documentation of the method for the standard use case. In principle, groups can be used to <cite>group</cite>
+different sets of recording channels for easier post-processing. It might also be of interest to create individual
+groups based on proximity of electrodes, etc. and store data associated to channels from these groups in separate locations.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Why does the value for LSB in the H5 file differ from the return value of the Python API?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">The <a class="reference internal" href="../../glossary.html#term-LSB"><span class="xref std std-term">LSB</span></a> found in the H5 files refers to the LSB of the readout amplifier and analog to digital converters (ADCs), while the call to
+<a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.util.query_DAC_lsb_mV" title="maxlab.util.query_DAC_lsb_mV"><code class="xref py py-func docutils literal notranslate"><span class="pre">mx.query_DAC_lsb_mV()</span></code></a> returns the LSB of the Stimulation Unit and digital to analog converters (DACs). Note also the
+difference in units: in the H5 it is given in <span class="math notranslate nohighlight">\(\rm V\)</span>, while the API returns the value in <span class="math notranslate nohighlight">\(\rm mV\)</span>.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Is it possible to run two python scripts simultaneously for MaxLab control?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">This is not recommended as concurrent access cannot be synchronised.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Can I get the <code class="code docutils literal notranslate"><span class="pre">*.whl</span></code> for the <code class="code docutils literal notranslate"><span class="pre">maxlab</span></code> module?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">You can find the wheel here: <code class="code docutils literal notranslate"><span class="pre">~/MaxLab/share/python/wheels/maxlab-*-py3-none-any.whl</span></code>. You should be able to
+install it into any virtual environment for development purposes. However, please be aware that you will have to update the library manually, if you install a new version of MaxLab Live.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p class="sd-card-text">Please note that the mxwserver needs to be running to use the API.</p>
+</div>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3" id="cfg-file-contents">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">What information is contained in the <code class="docutils literal notranslate"><span class="pre">.cfg</span></code> files of the array?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">The configuration file contains:</p>
+<ul class="simple">
+<li><p class="sd-card-text">Channel number,</p></li>
+<li><p class="sd-card-text">Electrode number,</p></li>
+<li><p class="sd-card-text">X and Y position of the electrode,</p></li>
+<li><p class="sd-card-text">On a separate line on the end a binary blob of data describing the state of the array to achive the desired routing.</p></li>
+</ul>
+<p class="sd-card-text">The encoding of this information in the file is:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">channel</span><span class="o">&gt;</span><span class="p">(</span><span class="o">&lt;</span><span class="n">electrode</span><span class="o">&gt;</span><span class="p">)</span><span class="o">&lt;</span><span class="n">X</span><span class="o">&gt;/&lt;</span><span class="n">Y</span><span class="o">&gt;</span><span class="p">;</span><span class="o">&lt;</span><span class="n">channel</span><span class="o">&gt;</span><span class="p">(</span><span class="o">&lt;</span><span class="n">electrode</span><span class="o">&gt;</span><span class="p">)</span><span class="o">&lt;</span><span class="n">X</span><span class="o">&gt;/&lt;</span><span class="n">Y</span><span class="o">&gt;</span><span class="p">;</span><span class="o">...</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p class="sd-card-text">The class <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.config.Config" title="maxlab.config.Config"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.Config</span></code></a> can be used to parse <code class="docutils literal notranslate"><span class="pre">.cfg</span></code> files.
+Accessing electrode configurations and mappings in C++ requires either manually parsing
+<code class="docutils literal notranslate"><span class="pre">.cfg</span></code> files or passing information from <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.config.Config" title="maxlab.config.Config"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.Config</span></code></a>
+in the Python script to the C++ script.</p>
+</div>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">When do I need to use the <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.util.offset" title="maxlab.util.offset"><code class="xref py py-func docutils literal notranslate"><span class="pre">mx.offset()</span></code></a> command?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">You only need to run an offset compensation using the <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.util.offset" title="maxlab.util.offset"><code class="xref py py-func docutils literal notranslate"><span class="pre">mx.offset()</span></code></a> command after initialization thought the
+<a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.util.initialize" title="maxlab.util.initialize"><code class="xref py py-func docutils literal notranslate"><span class="pre">mx.initialize()</span></code></a> command. There is no need to run it again as long as you do not reinitialize the system.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Is there any difference in the API for MaxOne and MaxTwo?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">There are some extra functions to deal with the fact that a wellplate has more than one chip.
+The relevant API calls are: <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.util.set_primary_well" title="maxlab.util.set_primary_well"><code class="xref py py-func docutils literal notranslate"><span class="pre">mx.set_primary_well()</span></code></a> and
+<a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.util.activate" title="maxlab.util.activate"><code class="xref py py-func docutils literal notranslate"><span class="pre">mx.activate()</span></code></a>.</p>
+<p class="sd-card-text">The command sending rate for both MaxOne and MaxTwo systems is 20’000 Hz. However, the data streaming rate
+for the MaxTwo system is 10’000 Hz as opposed to 20’000 Hz for the MaxOne.</p>
+<p class="sd-card-text">The classes <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.system.GPIODirection" title="maxlab.system.GPIODirection"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.GPIODirection</span></code></a>, <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.system.GPIOOutput" title="maxlab.system.GPIOOutput"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.GPIOOutput</span></code></a>,
+and <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.system.StatusLED" title="maxlab.system.StatusLED"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.StatusLED</span></code></a> do not have relevance for the MaxTwo since the system does not
+have GPIOs or a Status LED.</p>
+</div>
+</details></section>
+<section id="voltage-stimulation">
+<h2>Voltage Stimulation<a class="headerlink" href="#voltage-stimulation" title="Link to this heading">#</a></h2>
+<div class="toctree-wrapper compound">
+</div>
+<section id="electrode-selection-and-routing">
+<h3>Electrode selection and routing<a class="headerlink" href="#electrode-selection-and-routing" title="Link to this heading">#</a></h3>
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Can I record from stimulation electrodes?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">Electrodes connected to a Stimulation Unit cannot record electrophysiological signals, as the Stimulation Unit
+fixes their potential. Instead, electrophysiological signals from nearby cells should be recorded using adjacent
+electrodes.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How can I stimulate with 32 Stimulation Units?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">To make full use of the stimulation capabilities of the system, it is important to have a mental picture
+of how the hardware works. In <a class="reference internal" href="#stim-order"><span class="std std-numref">Fig. 1</span></a> you can see an abstract representation of the individual
+components. We will introduce each layer step-by-step.</p>
+<p class="sd-card-text">The first step is to select the elctrodes you want for stimulation and recording. This is done over the API
+calls <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.chip.Array.select_stimulation_electrodes" title="maxlab.chip.Array.select_stimulation_electrodes"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mx.Array.select_stimulation_electrodes()</span></code></a>,
+and <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.chip.Array.select_electrodes" title="maxlab.chip.Array.select_electrodes"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mx.Array.select_electrodes()</span></code></a>. For more details see</p>
+<ul class="simple">
+<li><p class="sd-card-text"><a class="reference internal" href="#how-to-select-electrodes"><span class="std std-ref">How do I select electrodes (recording and stimulation) from the electrode array?</span></a></p></li>
+<li><p class="sd-card-text"><a class="reference internal" href="#how-to-choose-stimulation-sites"><span class="std std-ref">How do I choose stimulation sites from the selected electrodes?</span></a></p></li>
+</ul>
+<p class="sd-card-text">Once you have selected your electrodes, they need to be routed. For the routing the stimulation electrodes
+are given priority over the recording electrodes, but it can still happen that some of the electrodes you
+have selected for stimulation may not be able to be routed. This is the first potential pitfall, you have
+to make sure that all of the electrodes you have selected for stimulation have been routed.</p>
+<p class="sd-card-text">Once the electrodes have been routed you need to connect them to the Stimulation Units. To do this, you call
+<a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.chip.Array.connect_electrode_to_stimulation" title="maxlab.chip.Array.connect_electrode_to_stimulation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mx.Array.connect_electrode_to_stimulation()</span></code></a>
+on each electrode you want to connect. For more details see</p>
+<ul class="simple">
+<li><p class="sd-card-text"><a class="reference internal" href="#how-to-connect-stimulation-units"><span class="std std-ref">How do I connect the Stimulation Units to the stimulation electrodes?</span></a></p></li>
+</ul>
+<p class="sd-card-text">This is the second possible pitfall: There are 32 independent
+Stimulation Units, but when you call
+<a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.chip.Array.connect_electrode_to_stimulation" title="maxlab.chip.Array.connect_electrode_to_stimulation"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mx.Array.connect_electrode_to_stimulation()</span></code></a>
+you have no gurantee that the electodes you pass to it will be assigned to different Stimulation Units,
+i.e. it can happen that more than one electrode gets assigned to one Stimulation Unit. For an approach on
+how to solve this issue, please refer to</p>
+<ul class="simple">
+<li><p class="sd-card-text"><a class="reference internal" href="#multiple-stim-electrodes-to-one-stim-unit"><span class="std std-ref">What should I do if two or more stimulation electrodes are connected to one Stimulation Unit?</span></a></p></li>
+</ul>
+<p class="sd-card-text">Once you have connected the stimulation electrodes to the Stimulation Units, you need to configure your
+Stimulation Units. The relevant class for this is <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.chip.StimulationUnit" title="maxlab.chip.StimulationUnit"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.StimulationUnit</span></code></a>.
+For an example of how to do this you can take a look at <a class="reference internal" href="../../tutorial_index.html#configure-and-power-up-stimulation-units"><span class="std std-ref">this section</span></a>
+in the Python tutorial.</p>
+<p class="sd-card-text">The method <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.chip.StimulationUnit.dac_source" title="maxlab.chip.StimulationUnit.dac_source"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mx.StimulationUnit.dac_source()</span></code></a> assigns each
+Stimulation Unit a <a class="reference internal" href="../../glossary.html#term-DAC"><span class="xref std std-term">DAC</span></a> source. We have 3 DACs on the chip. So in total, the setup looks something like
+this</p>
+<figure class="align-center" id="id1">
+<span id="stim-order"></span><a class="reference internal image-reference" href="../../_images/stim_order.svg"><img alt="Figure to illustrate how stimulation electrodes relate to DAC's." src="../../_images/stim_order.svg" style="width: 550px;" />
+</a>
+<figcaption>
+<p><span class="caption-number">Fig. 1 </span><span class="caption-text">This figure illustrates how stimulation electrodes relate to DAC’s. In red we have marked potential
+issues that need to be mitigated.</span><a class="headerlink" href="#id1" title="Link to this image">#</a></p>
+</figcaption>
+</figure>
+<p class="sd-card-text">Related questions:</p>
+<ul class="simple">
+<li><p class="sd-card-text"><a class="reference internal" href="#when-do-i-need-more-than-one-dac"><span class="std std-ref">When do I need more than one DAC?</span></a></p></li>
+<li><p class="sd-card-text"><a class="reference internal" href="#how-can-i-simultanously-stimulate-with-different-amplitudes"><span class="std std-ref">How can I stimulate two different regions with different amplitudes simulataneously?</span></a></p></li>
+</ul>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3" id="how-to-select-electrodes">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How do I select electrodes (recording and stimulation) from the electrode array?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">We here illustrate how to select electrodes 20, 30, 40 from
+the electrode array.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="n">electrodes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">40</span><span class="p">]</span>
+<span class="linenos">2</span>
+<span class="linenos">3</span><span class="n">array</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="s1">&#39;stimulation&#39;</span><span class="p">)</span>
+<span class="linenos">4</span><span class="n">array</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="linenos">5</span><span class="n">array</span><span class="o">.</span><span class="n">clear_selected_electrodes</span><span class="p">()</span>
+<span class="linenos">6</span><span class="n">array</span><span class="o">.</span><span class="n">select_electrodes</span><span class="p">(</span> <span class="n">electrodes</span> <span class="p">)</span>
+<span class="linenos">7</span><span class="n">array</span><span class="o">.</span><span class="n">route</span><span class="p">()</span>
+</pre></div>
+</div>
+<p class="sd-card-text">Other schemes are also possible. For example large consecutive
+blocks of electrodes or specific electrodes based on prior data
+analysis done e.g. in Matlab.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3" id="how-to-choose-stimulation-sites">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How do I choose stimulation sites from the selected electrodes?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">After selecting the recording and stimulation electrodes, the next step involves choosing
+stimulation sites from the pre-selected electrodes. Assuming the electrodes are stored as a
+variable named <code class="docutils literal notranslate"><span class="pre">electrodes</span></code>, and if more than 32 stimulation electrodes are selected (the
+maximum number of stimulation channels), we proceed by randomly selecting a subset of 32
+stimulation electrodes and routing them accordingly:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+<span class="linenos">2</span>
+<span class="linenos">3</span><span class="n">stimulation_electrodes</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">electrodes</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
+<span class="linenos">4</span><span class="n">array</span><span class="o">.</span><span class="n">select_stimulation_electrodes</span><span class="p">(</span> <span class="n">stimulation_electrodes</span> <span class="p">)</span>
+<span class="linenos">5</span><span class="n">array</span><span class="o">.</span><span class="n">route</span><span class="p">()</span>
+</pre></div>
+</div>
+<p class="sd-card-text">If less than 32 stimulation electrodes are selected and they are saved in the
+variable <code class="docutils literal notranslate"><span class="pre">stimulation_electrodes</span></code>, we can directly use these electrodes as stimulation
+electrodes and random selection of the stimulation electrodes is required:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="n">array</span><span class="o">.</span><span class="n">select_stimulation_electrodes</span><span class="p">(</span> <span class="n">stimulation_electrodes</span> <span class="p">)</span>
+<span class="linenos">2</span><span class="n">array</span><span class="o">.</span><span class="n">route</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p class="sd-card-text">The more electrodes are selected, the more issues can occur.
+In particular, the number of electrodes selected cannot be larger
+than 32, which is the number of stimulation channels.</p>
+</div>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3" id="how-to-connect-stimulation-units">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How do I connect the Stimulation Units to the stimulation electrodes?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">In order to connect the Stimulation Units to the stimulation electrodes saved under the
+name of <code class="docutils literal notranslate"><span class="pre">stimulation_electrodes</span></code>, we loop over the individual electrodes to connect
+them to the Stimulation Units:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="n">stimulation_electrodes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">40</span><span class="p">]</span>
+<span class="linenos"> 2</span><span class="n">stim_buffer_to_electrode_mapping</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="linenos"> 3</span>
+<span class="linenos"> 4</span><span class="k">for</span> <span class="n">stim_el</span> <span class="ow">in</span> <span class="n">stimulation_electrodes</span><span class="p">:</span>
+<span class="linenos"> 5</span>    <span class="n">array</span><span class="o">.</span><span class="n">connect_electrode_to_stimulation</span><span class="p">(</span> <span class="n">stim_el</span> <span class="p">)</span>
+<span class="linenos"> 6</span>    <span class="n">channel</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">query_stimulation_at_electrode</span><span class="p">(</span> <span class="n">stim_el</span> <span class="p">)</span>
+<span class="linenos"> 7</span>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">stim</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<span class="linenos"> 8</span>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No stimulation channel can connect to electrode: </span><span class="si">{</span><span class="n">stim_el</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">channel</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos"> 9</span>    <span class="k">else</span><span class="p">:</span>
+<span class="linenos">10</span>        <span class="n">stim_buffer_to_electrode_mapping</span><span class="p">[</span><span class="n">stim_el</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">channel</span><span class="p">)</span>
+<span class="linenos">11</span>
+<span class="linenos">12</span><span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">stim_buffer_to_electrode_mapping</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">stim_buffer_to_electrode_mapping</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+<span class="linenos">13</span>    <span class="c1"># in this case multiple electrodes were connected to the same stim-buffer</span>
+<span class="linenos">14</span>    <span class="c1"># and thus cant be used together. In this case, just pick a neighboring electrode instead</span>
+<span class="linenos">15</span>    <span class="c1"># and redo this process</span>
+<span class="linenos">16</span>    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Multiple stimulation electrodes connected to same stimulation unit.&quot;</span><span class="p">)</span>
+<span class="linenos">17</span>
+<span class="linenos">18</span><span class="n">stimulation_units</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">stim_buffer_to_electrode_mapping</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+<span class="linenos">19</span><span class="n">array</span><span class="o">.</span><span class="n">download</span><span class="p">()</span>
+<span class="linenos">20</span><span class="n">mx</span><span class="o">.</span><span class="n">offset</span><span class="p">()</span>
+</pre></div>
+</div>
+<p class="sd-card-text">The conditional in the loop above checks if the variable <code class="docutils literal notranslate"><span class="pre">stim</span></code> is an empty string or not. As can be
+seen in the docstring of the method <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.chip.Array.query_stimulation_at_electrode" title="maxlab.chip.Array.query_stimulation_at_electrode"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mx.Array.query_stimulation_at_electrode()</span></code></a>,
+it returns either the index of the Stimulation Unit for a specific stimulation electrode, or an empty string. Hence,
+the conditional checks if the simulation electrode is indeed connected to a Stimulation Unit.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How do I determine which Stimulation Unit is used with each electrode?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">In order to determine which Stimulation Unit is used with each electrode, one needs to have
+the list of stimulation electrodes available and stored. We then can use the method
+<a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.chip.Array.query_stimulation_at_electrode" title="maxlab.chip.Array.query_stimulation_at_electrode"><code class="xref py py-meth docutils literal notranslate"><span class="pre">query_stimulation_at_electrode()</span></code></a> from the created
+<a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.chip.Array" title="maxlab.chip.Array"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.Array</span></code></a> object as follows:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">electrode_to_query</span> <span class="o">=</span> <span class="mi">7</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">array</span><span class="o">.</span><span class="n">query_stimulation_at_electrode</span><span class="p">(</span><span class="n">electrode_to_query</span><span class="p">)</span>
+<span class="go">21</span>
+</pre></div>
+</div>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3" id="multiple-stim-electrodes-to-one-stim-unit">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">What should I do if two or more stimulation electrodes are connected to one Stimulation Unit?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">If you need independent stimulation pulses on the two electrodes, but they are connected to the same stimulation unit, there are currently two ways to approach the problem. However, if you want to apply the same pulse to these two electrodes anyway, please refer to this question: <a class="reference internal" href="#how-is-the-stimulation-pulse-affected-by-multiple-electrodes"><span class="std std-ref">How is the stimulation pulse affected if two or more electrodes are connected to one Stimulation Unit?</span></a>.</p>
+<ul class="simple">
+<li><p class="sd-card-text">Try to choose a neighboring electrode as stimulation electrode. For this the
+<a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.util.electrode_neighbors" title="maxlab.util.electrode_neighbors"><code class="xref py py-func docutils literal notranslate"><span class="pre">mx.electrode_neighbors()</span></code></a> function might come in handy.</p></li>
+<li><p class="sd-card-text">Since the root cause of the problem is the routing and the routing is dependent on the electrode
+configuration, you can try to change the configuration slightly and then try again with the same
+stimulation electrode selection.</p></li>
+</ul>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3" id="how-is-the-stimulation-pulse-affected-by-multiple-electrodes">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How is the stimulation pulse affected if two or more electrodes are connected to one Stimulation Unit?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">The stimulation units are made in such a way that they can drive up to 30 electrodes simultaneously, without
+significantly affecting the resulting stimulation pulses. Therefore, the stimulation pulse should stay unaffected for most
+use-cases.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3" id="when-do-i-need-more-than-one-dac">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">When do I need more than one DAC?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">Each DAC is an independent source for the voltage needed for the stimulation. Since we have 3 DACs, you can
+at most do three independently configured (e.g. with different amplitudes, phases, etc.) stimulation
+pulses on a set of Stimulation Units <cite>simultaneously</cite>. The key word here is <cite>simultaneously</cite>,
+if the stimulation pulses can be delivered sequentially, then you can stimulate each electrode with
+a different amplitude, phase, etc. with one DAC.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Does using multiple DACs affect the latency in any way?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">No, the latency is not affected at all.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3" id="how-can-i-simultanously-stimulate-with-different-amplitudes">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How can I stimulate two different regions with different amplitudes simulataneously?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">You can only control <code class="code docutils literal notranslate"><span class="pre">DAC0</span></code> and <code class="code docutils literal notranslate"><span class="pre">DAC1</span></code> simultaneously. This is a hardware limitation. To control
+the two DACs simultaneously, you need to use <code class="code docutils literal notranslate"><span class="pre">dac_no=3</span></code> in <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.chip.DAC" title="maxlab.chip.DAC"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.DAC</span></code></a>.</p>
+<p class="sd-card-text">Lets say you want to create two bi-phasic pulses with the same phase, but different amplitude. Assuming you
+have connected some electrodes to <code class="code docutils literal notranslate"><span class="pre">DAC0</span></code> and some others to <code class="code docutils literal notranslate"><span class="pre">DAC1</span></code>, then the
+<a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.sequence.Sequence" title="maxlab.sequence.Sequence"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.Sequence</span></code></a> might looks something like this</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">sequence</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">Sequence</span><span class="p">()</span>
+<span class="n">sequence</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">512</span><span class="o">-</span><span class="n">amplitude_A</span><span class="p">,</span> <span class="mi">512</span><span class="o">-</span><span class="n">amplitude_B</span><span class="p">))</span>
+<span class="n">sequence</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="n">phase</span><span class="p">))</span>
+<span class="n">sequence</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">512</span><span class="o">+</span><span class="n">amplitude_A</span><span class="p">,</span> <span class="mi">512</span><span class="o">+</span><span class="n">amplitude_B</span><span class="p">))</span>
+<span class="n">sequence</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="n">phase</span><span class="p">))</span>
+<span class="n">sequence</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="mi">512</span><span class="p">))</span>
+</pre></div>
+</div>
+<p class="sd-card-text">For a more detailed example, please refer to <a class="reference internal" href="../../examples/python/sim_stim.html#example-python-sim-stim"><span class="std std-ref">this example</span></a>.
+Please note, in most cases this is not needed and programming the DACs sequentially is fast enough.
+The time between two sequential DAC changes is as low as 2-3 µs.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p class="sd-card-text">It is <strong>not</strong> possible to stimulate any other permutation of the three DACs simultaneously. If you need
+to stimulate with more than two amplitudes it will not be possible to do it simultaneously. In such a
+case please refer to the question</p>
+<ul class="simple">
+<li><p class="sd-card-text"><a class="reference internal" href="#how-can-i-stimulate-with-more-than-two-amplitudes-as-quickly-as-possible"><span class="std std-ref">How can I stimulate with more than two amplitudes as quickly as possible?</span></a></p></li>
+</ul>
+</div>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3" id="how-can-i-stimulate-with-more-than-two-amplitudes-as-quickly-as-possible">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How can I stimulate with more than two amplitudes as quickly as possible?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">Please refer to the <a class="reference internal" href="../../examples/python/interleave.html#example-python-interleave"><span class="std std-ref">this example script</span></a>.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How do I activate the Stimulation Units in sequence while minimizing delays?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">To activate the Stimulation Units in sequence while minimizing delays, one should follow
+these steps:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p class="sd-card-text">Power up all stimulation units,</p></li>
+<li><p class="sd-card-text">Disconnect all stimulation units from DACs</p></li>
+<li><p class="sd-card-text">Sequentially connect and disconnect stimulation units from DACs.</p></li>
+</ol>
+</div></blockquote>
+<p class="sd-card-text">The code is the following:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="n">all_stimulation_units</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span><span class="k">for</span> <span class="n">stimulation_unit</span> <span class="ow">in</span> <span class="n">all_stimulation_units</span><span class="p">:</span>
+<span class="linenos"> 4</span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Power up stimulation unit </span><span class="si">{</span><span class="n">stimulation_unit</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos"> 5</span>    <span class="n">stim</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">StimulationUnit</span><span class="p">(</span><span class="n">stimulation_unit</span><span class="p">)</span>
+<span class="linenos"> 6</span>    <span class="n">mx</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">stim</span><span class="o">.</span><span class="n">power_up</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">set_voltage_mode</span><span class="p">()</span><span class="o">.</span><span class="n">dac_source</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+<span class="linenos"> 7</span>
+<span class="linenos"> 8</span><span class="k">for</span> <span class="n">stimulation_unit</span> <span class="ow">in</span> <span class="n">all_stimulation_units</span><span class="p">:</span>
+<span class="linenos"> 9</span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Connecting stimulation unit </span><span class="si">{</span><span class="n">stimulation_unit</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">10</span>    <span class="n">stim</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">StimulationUnit</span><span class="p">(</span><span class="n">stimulation_unit</span><span class="p">)</span>
+<span class="linenos">11</span>    <span class="n">mx</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">stim</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="kc">True</span><span class="p">))</span>
+<span class="linenos">12</span>    <span class="c1"># perform action on stimulation unit</span>
+<span class="linenos">13</span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Disconnecting stimulation unit </span><span class="si">{</span><span class="n">stimulation_unit</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">14</span>    <span class="n">mx</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">stim</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="kc">False</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">What issues might arise when powering down a Stimulation Unit?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">Powering up and down a Stimulation Unit directly before and after a stimulation pulse is not recommended. First, to improve latency of the stimulation pulse and second to ensure stability of the stimulation unit.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How can I access all Stimulation Units simultaneously?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">If one wishes to access all  32 Stimulation Units simultaneously, one needs to
+connect all the units to one DAC. this can be done the following way:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">stimulation_units</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">stimulation_unit</span> <span class="ow">in</span> <span class="n">stimulation_units</span><span class="p">:</span>
+    <span class="n">stim</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">StimulationUnit</span><span class="p">(</span><span class="n">stimulation_unit</span><span class="p">)</span>
+    <span class="n">mx</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">stim</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">dac_source</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Can I change the DAC source of a Stimulation Unit?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">To quickly switch DAC sources for a given Stimulation Unit you can use the
+<a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.chip.StimulationUnit" title="maxlab.chip.StimulationUnit"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.StimulationUnit</span></code></a> class. If you create an object of that class you
+will see that there is a method called
+<a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.chip.StimulationUnit.dac_source" title="maxlab.chip.StimulationUnit.dac_source"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mx.StimulationUnit.dac_source()</span></code></a>. This method allows switching of
+the DAC. As long as you make sure that all Stimulation Units have been previously powered on, the switching itself
+should be very fast.</p>
+</div>
+</details></section>
+<section id="sequences">
+<h3>Sequences<a class="headerlink" href="#sequences" title="Link to this heading">#</a></h3>
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How many sequences can you create in a single python file?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">Practically, there is no upper limit. The sequences are stored on the <code class="code docutils literal notranslate"><span class="pre">mxwserver</span></code> and can then individually
+be sent to the device over the <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.sequence.Sequence.send" title="maxlab.sequence.Sequence.send"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mx.Sequence.send()</span></code></a> command of the indivual
+sequence or over <a class="reference internal" href="../../section_api/subsections/api_cpp.html#_CPPv4N6maxlab12sendSequenceEPKc" title="maxlab::sendSequence"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">maxlab::sendSequence()</span></code></a>. Since they are stored on the <code class="code docutils literal notranslate"><span class="pre">mxwserver</span></code>, each additional
+sequence will use a little bit memory on the computer that it is running, but this is negligible. Thus, theoretically, the number and length of sequences are constraint by the memory of the computer running <code class="code docutils literal notranslate"><span class="pre">mxwserver</span></code>.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How can I reduce the latency between pulse-trains?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">When creating a stimulation sequence like this</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">single_pulse</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">amplitude</span><span class="p">):</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">maxlab</span><span class="o">.</span><span class="n">chip</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span><span class="o">-</span><span class="n">amplitude</span><span class="p">)</span> <span class="p">)</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">maxlab</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="p">)</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">maxlab</span><span class="o">.</span><span class="n">chip</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span><span class="o">+</span><span class="n">amplitude</span><span class="p">)</span> <span class="p">)</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">maxlab</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="p">)</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">maxlab</span><span class="o">.</span><span class="n">chip</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">return</span> <span class="n">seq</span>
+
+<span class="n">seq</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">Sequence</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+<span class="n">single_pulse</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">some_amplitude</span><span class="p">)</span>
+
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+</pre></div>
+</div>
+<p class="sd-card-text">the bottleneck in terms of latency is the <code class="docutils literal notranslate"><span class="pre">for</span></code>-loop in python. The solution is to keep in mind that a
+<a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.sequence.Sequence" title="maxlab.sequence.Sequence"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.Sequence</span></code></a> object can hold multiple pulses. We can thus write something like this</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">single_pulse</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">amplitude</span><span class="p">):</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">maxlab</span><span class="o">.</span><span class="n">chip</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span><span class="o">-</span><span class="n">amplitude</span><span class="p">)</span> <span class="p">)</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">maxlab</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="p">)</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">maxlab</span><span class="o">.</span><span class="n">chip</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span><span class="o">+</span><span class="n">amplitude</span><span class="p">)</span> <span class="p">)</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">maxlab</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="p">)</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">maxlab</span><span class="o">.</span><span class="n">chip</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span><span class="p">)</span> <span class="p">)</span>
+    <span class="k">return</span> <span class="n">seq</span>
+
+<span class="n">time_between_pulse_trains</span> <span class="o">=</span> <span class="mi">3000</span> <span class="c1">#us</span>
+<span class="n">seq</span> <span class="o">=</span> <span class="n">maxlab</span><span class="o">.</span><span class="n">Sequence</span><span class="p">(</span><span class="s2">&quot;name&quot;</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">30</span><span class="p">):</span>
+    <span class="n">single_pulse</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">some_amplitude</span><span class="p">)</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="n">time_between_pulse_trains</span> <span class="o">/</span> <span class="mi">50</span> <span class="p">))</span> <span class="c1"># 50us = 1/ 20&#39;000 s^-1 = 1 / sampling_freq</span>
+
+<span class="n">seq</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How do I send spike trains as stimulation pulses to multiple electrodes?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p class="sd-card-text">In order to run the code below, one first needs to select the stimulation
+electrodes and connect them to the stimulation units.</p>
+</div>
+<p class="sd-card-text">We first start by powering off all the stimulation units.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="n">all_stimulation_units</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">32</span><span class="p">)</span>
+<span class="linenos">2</span>
+<span class="linenos">3</span><span class="k">for</span> <span class="n">stimulation_unit</span> <span class="ow">in</span> <span class="n">all_stimulation_units</span><span class="p">:</span>
+<span class="linenos">4</span>    <span class="n">stim</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">StimulationUnit</span><span class="p">(</span><span class="n">stimulation_unit</span><span class="p">)</span>
+<span class="linenos">5</span>    <span class="n">stim</span><span class="o">.</span><span class="n">power_up</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="linenos">6</span>    <span class="n">stim</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="linenos">7</span>    <span class="n">mx</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">stim</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="sd-card-text">We will start by preparing a sequence of stimulation pulses with increasing amplitudes:
+10 bits (= 29 mV), 15 bits (= 43.5 mV), 20 bits (= 58 mV), and 25 bits (= 72.5 mV).
+# see doc for more info…</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="k">def</span><span class="w"> </span><span class="nf">append_stimulation_pulse</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">amplitude</span><span class="p">):</span>
+<span class="linenos"> 2</span>    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">mx</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span><span class="o">-</span><span class="n">amplitude</span><span class="p">)</span> <span class="p">)</span>
+<span class="linenos"> 3</span>    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">mx</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="p">)</span>
+<span class="linenos"> 4</span>    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">mx</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span><span class="o">+</span><span class="n">amplitude</span><span class="p">)</span> <span class="p">)</span>
+<span class="linenos"> 5</span>    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">mx</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="p">)</span>
+<span class="linenos"> 6</span>    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">mx</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span><span class="p">)</span> <span class="p">)</span>
+<span class="linenos"> 7</span>    <span class="k">return</span> <span class="n">seq</span>
+<span class="linenos"> 8</span>
+<span class="linenos"> 9</span><span class="n">amplitudes</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+<span class="linenos">10</span><span class="n">repetitions</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>  <span class="c1"># number of pulse repetitions</span>
+<span class="linenos">11</span><span class="n">seq</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">Sequence</span><span class="p">()</span>
+<span class="linenos">12</span>
+<span class="linenos">13</span><span class="k">for</span> <span class="n">amplitude</span> <span class="ow">in</span> <span class="n">amplitudes</span><span class="p">:</span>
+<span class="linenos">14</span>    <span class="k">for</span> <span class="n">rep</span> <span class="ow">in</span> <span class="n">repetitions</span><span class="p">:</span>
+<span class="linenos">15</span>        <span class="n">append_stimulation_pulse</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">amplitude</span><span class="p">)</span>
+<span class="linenos">16</span>        <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">mx</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="mi">2000</span><span class="p">)</span> <span class="p">)</span>
+<span class="linenos">17</span>    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">mx</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="mi">20000</span><span class="p">)</span> <span class="p">)</span>
+</pre></div>
+</div>
+<p class="sd-card-text">As can be understood from the code above, the sequence can be of any length and amplitude
+combinations. However, in the case of this example, the same sequence will be sent
+to all stimulation units. We now are ready to deliver the pulses. This general steps are
+followed:</p>
+<ol class="arabic simple">
+<li><p class="sd-card-text">Power up one stimulation unit.</p></li>
+<li><p class="sd-card-text">Deliver a series of stimulation pulses.</p></li>
+<li><p class="sd-card-text">Power down the stimulation unit.</p></li>
+</ol>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span><span class="n">stimulation_units</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+<span class="linenos"> 4</span>
+<span class="linenos"> 5</span><span class="k">for</span> <span class="n">stimulation_unit</span> <span class="ow">in</span> <span class="n">stimulation_units</span><span class="p">:</span>
+<span class="linenos"> 6</span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Power up stimulation unit &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">stimulation_unit</span><span class="p">))</span>
+<span class="linenos"> 7</span>    <span class="n">stim</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">StimulationUnit</span><span class="p">(</span><span class="n">stimulation_unit</span><span class="p">)</span>
+<span class="linenos"> 8</span>    <span class="n">stim</span><span class="o">.</span><span class="n">power_up</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">set_voltage_mode</span><span class="p">()</span><span class="o">.</span><span class="n">dac_source</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="linenos"> 9</span>    <span class="n">mx</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">stim</span><span class="p">)</span>
+<span class="linenos">10</span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Send pulse&quot;</span><span class="p">)</span>
+<span class="linenos">11</span>    <span class="n">seq</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+<span class="linenos">12</span>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Power down stimulation unit &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">stimulation_unit</span><span class="p">))</span>
+<span class="linenos">13</span>    <span class="n">stim</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">StimulationUnit</span><span class="p">(</span><span class="n">stimulation_unit</span><span class="p">)</span><span class="o">.</span><span class="n">power_up</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<span class="linenos">14</span>    <span class="n">mx</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">stim</span><span class="p">)</span>
+<span class="linenos">15</span>    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How can I change the stimulation pattern based on the recording? Is there a Python package for that?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">This question is part of the closed-loop C++ documentation and it is not doable in Python.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How can I stop an ongoing stimulation?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">This is not possible: The only way is to shut down the device.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">What is the most efficient way to deliver a long stimulation sequence of biphasic pulses?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">The recommended way to do this is using <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.sequence.Sequence" title="maxlab.sequence.Sequence"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.Sequence</span></code></a>. A possible approach
+could look something like this</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">append_bi_phasic_pulse</span><span class="p">(</span><span class="n">seq</span><span class="p">:</span> <span class="n">mx</span><span class="o">.</span><span class="n">Sequence</span><span class="p">,</span> <span class="n">amplitude</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">phase</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">Sequence</span><span class="p">:</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span> <span class="o">-</span> <span class="n">amplitude</span><span class="p">))</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="n">phase</span><span class="p">))</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span> <span class="o">+</span> <span class="n">amplitude</span><span class="p">))</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="n">phase</span><span class="p">))</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span><span class="p">))</span>
+<span class="k">return</span> <span class="n">seq</span>
+
+<span class="n">seq</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">Sequence</span><span class="p">()</span>
+
+<span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
+    <span class="n">append_bi_phasic_pulse</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">amplitude</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">phase</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="mi">200</span><span class="p">))</span>
+
+<span class="n">seq</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How can we independently control more than three stimulation units?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">There are 3 DAC sources. The 32 Stimulation Units can be connected right before delivering the pulse and
+disconnected right after delivering the pulse. That way, all 32 Stimulation Units can stimulate different
+electrodes, with e.g. only one DAC source. In the same way, you can connect one subset of electrodes to one
+DAC source and another subset to another DAC source.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Does gain affect stimulation voltage in any way?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">Gain only affects the recorded signals. It might thus affect the artifact of the stimulation
+pulse, which will appear larger (or smaller) depending on gain. The LSB which is recorded into the files refers
+to the recording LSB (not stimulation LSB). The stimulation LSB should typically not be changed.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">If we want to change the gain, when should this happen?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">Gain can be changed at any time after <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.util.initialize" title="maxlab.util.initialize"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.initialize()</span></code></a>.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">Is it feasible to use the stimulation APIs to generate a wave closer to a wave rather than a square?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">A possible approach could look like this</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">seq</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">Sequence</span><span class="p">()</span>
+<span class="n">multipliers</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">multipliers</span><span class="p">:</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span> <span class="o">-</span> <span class="mi">5</span><span class="o">*</span><span class="n">i</span><span class="p">))</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">multipliers</span><span class="p">:</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span> <span class="o">+</span> <span class="mi">5</span><span class="o">*</span><span class="n">i</span><span class="p">))</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+
+<span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">When should I use the <code class="docutils literal notranslate"><span class="pre">persistent</span></code> flag in a sequence?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">The <code class="docutils literal notranslate"><span class="pre">persistent</span></code> flag should be used anytime a specific sequence must outlive the execution of the Python file
+in which it is created. This is most common in closed-loop applications, where a setup script must be run beforehand
+to prepare various sequences. A C++ script is called afterwards to deliver those sequences. See below for an example.</p>
+<p class="sd-card-text">Assume you create a sequence like this</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">maxlab</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mx</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">sleep</span>
+
+<span class="n">seq</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">Sequence</span><span class="p">(</span><span class="s2">&quot;my_name&quot;</span><span class="p">)</span>  <span class="c1"># equivalent to mx.Sequence(&quot;my_name&quot;, persistent=False)</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">Event</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;text some_string_describing_an_important_event&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+<p class="sd-card-text">You created this specific sequence so that you can label events in the raw data stream from C++.
+In this case, you would want the sequence to outlive the execution of the Python file itself.
+At end of the python file the destructor for all object gets called (i.e. the <code class="docutils literal notranslate"><span class="pre">__del__</span></code> method of that class),
+i.e. in essence the python interpreter calls <code class="docutils literal notranslate"><span class="pre">del</span> <span class="pre">seq</span></code>.
+When the <code class="docutils literal notranslate"><span class="pre">del</span></code> keyword is used, the sequence gets also deleted from the <code class="docutils literal notranslate"><span class="pre">mxwserver</span></code> and you will get an error
+when trying to use <a class="reference internal" href="../../section_api/subsections/api_cpp.html#_CPPv4N6maxlab12sendSequenceEPKc" title="maxlab::sendSequence"><code class="xref cpp cpp-func docutils literal notranslate"><span class="pre">maxlab::sendSequence()</span></code></a>.</p>
+<p class="sd-card-text">To prevent the sequence
+from being deleted from the <code class="docutils literal notranslate"><span class="pre">mxwserver</span></code> you should pass <code class="code docutils literal notranslate"><span class="pre">persistent=True</span></code> to the constructor.</p>
+</div>
+</details></section>
+<section id="events">
+<h3>Events<a class="headerlink" href="#events" title="Link to this heading">#</a></h3>
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How can I use a <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.system.Event" title="maxlab.system.Event"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.Event</span></code></a> to track the exact timing of my stimulation?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">Using a <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.sequence.Sequence" title="maxlab.sequence.Sequence"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.Sequence</span></code></a> to build your stimulation, you can insert a
+<a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.system.Event" title="maxlab.system.Event"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.Event</span></code></a> right before the start of each pulse as shown in the example below:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">seq</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">Sequence</span><span class="p">()</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">Event</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">event_counter</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;amplitude </span><span class="si">{</span><span class="n">amplitude</span><span class="si">}</span><span class="s2"> event_id </span><span class="si">{</span><span class="n">event_counter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span> <span class="o">-</span> <span class="n">amplitude</span><span class="p">))</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="n">delay_samples</span><span class="p">))</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span> <span class="o">+</span> <span class="n">amplitude</span><span class="p">))</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="n">delay_samples</span><span class="p">))</span>
+<span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span><span class="p">))</span>
+</pre></div>
+</div>
+<p class="sd-card-text">Since the entire procedure occurs within a <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.sequence.Sequence" title="maxlab.sequence.Sequence"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.Sequence</span></code></a>, there will be minimal
+delay between the commands and the <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.system.Event" title="maxlab.system.Event"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.Event</span></code></a> will share the same frame number as the
+onset of the stimulation. All events are stored and can therefore be used to identify the exact timing of each stimulation.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3" id="events-not-in-raw-file">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">I’m sending events but I’m not seeing any in the raw file. What might be wrong?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">Make sure to call <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.util.clear_events" title="maxlab.util.clear_events"><code class="xref py py-func docutils literal notranslate"><span class="pre">mx.clear_events()</span></code></a> before you add any events to your first
+sequence and to only add events to the sequence once you have started the recording via
+<a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.saving.Saving.start_recording" title="maxlab.saving.Saving.start_recording"><code class="xref py py-meth docutils literal notranslate"><span class="pre">mx.Saving.start_recording()</span></code></a>. Also make sure to set the <code class="docutils literal notranslate"><span class="pre">event_type</span></code>
+to <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">How can I store arbitrary annotations in my events?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">Looking at the documentation of <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.system.Event" title="maxlab.system.Event"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.Event</span></code></a> we can see that there is a parameter called
+<code class="docutils literal notranslate"><span class="pre">properties</span></code>. This parameter is of type string and is interpreted as a list of space-separated key value pairs,
+e.g.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">mx</span><span class="o">.</span><span class="n">Event</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">user_id</span><span class="p">,</span> <span class="s2">&quot;key0 value0 key1 value1&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p class="sd-card-text">will in the HDF5 file appear as a table of the form</p>
+<div class="pst-scrollable-table-container"><table class="table">
+<tbody>
+<tr class="row-odd"><td><p class="sd-card-text">key0</p></td>
+<td><p class="sd-card-text">value0</p></td>
+</tr>
+<tr class="row-even"><td><p class="sd-card-text">key1</p></td>
+<td><p class="sd-card-text">value1</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p class="sd-card-text">This is quite flexible, since the value can be anything that does not contain a space.</p>
+</div>
+</details><details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">I see a message in the <code class="docutils literal notranslate"><span class="pre">mxwserver</span></code> terminal that says <code class="docutils literal notranslate"><span class="pre">Event</span> <span class="pre">with</span> <span class="pre">id</span> <span class="pre">X</span> <span class="pre">doesn't</span> <span class="pre">exist</span></code>. How can I fix this?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">This happens if you call <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.util.clear_events" title="maxlab.util.clear_events"><code class="xref py py-func docutils literal notranslate"><span class="pre">mx.clear_events()</span></code></a> after you added the events to a
+sequence and then send that sequence. The above call deletes all the events from the <code class="docutils literal notranslate"><span class="pre">mxwserver</span></code> so when you
+send the sequence the <code class="docutils literal notranslate"><span class="pre">mxwserver</span></code> does not know to which event you are refering to in the sequence.</p>
+<p class="sd-card-text">For more information on how to avoid this see</p>
+<ul class="simple">
+<li><p class="sd-card-text"><a class="reference internal" href="#events-not-in-raw-file"><span class="std std-ref">I’m sending events but I’m not seeing any in the raw file. What might be wrong?</span></a></p></li>
+</ul>
+</div>
+</details></section>
+<section id="latencies">
+<h3>Latencies<a class="headerlink" href="#latencies" title="Link to this heading">#</a></h3>
+<details class="sd-sphinx-override sd-dropdown sd-card sd-mb-3">
+<summary class="sd-summary-title sd-card-header">
+<span class="sd-summary-text">What is the latency for sending stimulation pulses?</span><span class="sd-summary-state-marker sd-summary-chevron-right"><svg version="1.1" width="1.5em" height="1.5em" class="sd-octicon sd-octicon-chevron-right" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.72 18.78a.75.75 0 0 1 0-1.06L14.44 12 8.72 6.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l6.25 6.25a.75.75 0 0 1 0 1.06l-6.25 6.25a.75.75 0 0 1-1.06 0Z"></path></svg></span></summary><div class="sd-summary-content sd-card-body docutils">
+<p class="sd-card-text">This depends on the exact use-case:</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt>If all stimulation pulses are stored within a single sequence</dt><dd><p class="sd-card-text">Within a sequence, all commands are executed immediately after each other, leading to minimal delay and very precise timing.
+However, when sending a sequence, we need to ensure that all commands have been downloaded before the first one gets
+executed, to guarantee the precise timing. For this reason, the <a class="reference internal" href="../../section_api/subsections/api_python.html#maxlab.sequence.Sequence" title="maxlab.sequence.Sequence"><code class="xref py py-class docutils literal notranslate"><span class="pre">mx.Sequence</span></code></a>
+class has an <code class="docutils literal notranslate"><span class="pre">intial_delay</span></code> parameter, set to 5 <span class="math notranslate nohighlight">\(\rm ms\)</span> by default. For use-cases where low latency is needed, this
+parameter can be decreased, but be wary that it may lead to the above mentioned issues.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>If the stimulation protocol requires operations outside of sequences</dt><dd><p class="sd-card-text">Most operations outside of sequences, e.g. connecting an electrode to a stimulation buffer, are quite fast. However,
+since it cannot be guaranteed that they will be executed immediately, additional and irregular delays are to be expected.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+</details></section>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="../faq.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">FAQ</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="api_cpp.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">C++ API</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+<div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#general">General</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#voltage-stimulation">Voltage Stimulation</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#electrode-selection-and-routing">Electrode selection and routing</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#sequences">Sequences</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#events">Events</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#latencies">Latencies</a></li>
+</ul>
+</li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item"><p>API  version 1.1.0.</p></div>
+      
+        <div class="footer-item"><p>MaxLab Live version 25.2.0.</p></div>
+      
+    </div>
+  
+  
+    <div class="footer-items__center">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, MaxWell Biosystems AG.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item"><p class="last-updated">
+  Last updated on Jul 31, 2025.
+  <br/>
+</p></div>
+      
+    </div>
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

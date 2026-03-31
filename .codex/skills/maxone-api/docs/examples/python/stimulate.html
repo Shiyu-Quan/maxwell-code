@@ -1,0 +1,1011 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="../../" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Stimulation &#8212; MaxLab 1.1.0 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="../../_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="../../_static/documentation_options.js?v=b3e8092d"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'examples/python/stimulate';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Simultaneous Stimulation" href="sim_stim.html" />
+    <link rel="prev" title="Saving" href="saving.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="1.1.0" />
+    <meta name="docbuild:last-update" content="Jul 31, 2025"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
+
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+<div class="bd-header__inner bd-page-width">
+  <button class="pst-navbar-icon sidebar-toggle primary-toggle" aria-label="Site navigation">
+    <span class="fa-solid fa-bars"></span>
+  </button>
+  
+  
+  <div class="col-lg-3 navbar-header-items__start">
+    
+      <div class="navbar-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="../../index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="../../_static/logo_maxwell.png" class="logo__image only-light" alt="MaxLab 1.1.0 documentation - Home"/>
+    <img src="../../_static/logo_maxwell.png" class="logo__image only-dark pst-js-only" alt="MaxLab 1.1.0 documentation - Home"/>
+  
+  
+</a></div>
+    
+  </div>
+  
+  <div class="col-lg-9 navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../index.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../tutorial_index.html">
+    Tutorial
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../section_api/api.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../section_faq/faq.html">
+    FAQ
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../examples.html">
+    Examples
+  </a>
+</li>
+
+            <li class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-controls="pst-nav-more-links">
+                    More
+                </button>
+                <ul id="pst-nav-more-links" class="dropdown-menu">
+                    
+<li class=" ">
+  <a class="nav-link dropdown-item nav-internal" href="../../glossary.html">
+    Glossary
+  </a>
+</li>
+
+                </ul>
+            </li>
+            
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+        </div>
+      
+      
+        <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button>
+    </div>
+  
+
+  
+</div>
+
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          
+          
+            <div class="navbar-item">
+<nav>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../index.html">
+    Overview
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../tutorial_index.html">
+    Tutorial
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../section_api/api.html">
+    API
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../section_faq/faq.html">
+    FAQ
+  </a>
+</li>
+
+
+<li class="nav-item current active">
+  <a class="nav-link nav-internal" href="../examples.html">
+    Examples
+  </a>
+</li>
+
+
+<li class="nav-item ">
+  <a class="nav-link nav-internal" href="../../glossary.html">
+    Glossary
+  </a>
+</li>
+
+  </ul>
+</nav></div>
+          
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item">
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+<nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="index.html">Python</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="saving.html">Saving</a></li>
+<li class="toctree-l2 current active"><a class="current reference internal" href="#">Stimulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sim_stim.html">Simultaneous Stimulation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="interleave.html">Interleaving</a></li>
+</ul>
+</details></li>
+<li class="toctree-l1"><a class="reference internal" href="../cpp/index.html">C++</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+<nav aria-label="Breadcrumb" class="d-print-none">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../examples.html" class="nav-link">Examples</a></li>
+    
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">Python</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page"><span class="ellipsis">Stimulation</span></li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
+  <section id="stimulation">
+<span id="example-python-stimulation"></span><h1>Stimulation<a class="headerlink" href="#stimulation" title="Link to this heading">#</a></h1>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/python</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">STIMULATION EXAMPLES</span>
+
+<span class="sd">This script can be used to run stimulation on a MaxTwo or</span>
+<span class="sd">MaxOne system via the Python API. Several combinations of pulse</span>
+<span class="sd">trains can be run and the script can be called from the command</span>
+<span class="sd">line directly. </span>
+
+<span class="sd">Warning: No recordings are made in this example, but you can find</span>
+<span class="sd">an example about how to record in another script, called `recordings.py`.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">maxlab</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mx</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="c1"># fmt: off</span>
+<span class="n">electrodes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4885</span><span class="p">,</span> <span class="mi">4666</span><span class="p">,</span> <span class="mi">4886</span><span class="p">,</span> <span class="mi">4022</span><span class="p">,</span> <span class="mi">5327</span><span class="p">,</span> <span class="mi">5328</span><span class="p">,</span> <span class="mi">5106</span><span class="p">,</span> <span class="mi">5326</span><span class="p">,</span> <span class="mi">3138</span><span class="p">,</span> <span class="mi">3140</span><span class="p">,</span> <span class="mi">2919</span><span class="p">,</span>
+              <span class="mi">5105</span><span class="p">,</span> <span class="mi">4667</span><span class="p">,</span> <span class="mi">4448</span><span class="p">,</span> <span class="mi">5109</span><span class="p">,</span> <span class="mi">4669</span><span class="p">,</span> <span class="mi">4665</span><span class="p">,</span> <span class="mi">3798</span><span class="p">,</span> <span class="mi">4021</span><span class="p">,</span> <span class="mi">3141</span><span class="p">,</span> <span class="mi">4668</span><span class="p">,</span> <span class="mi">4240</span><span class="p">,</span>
+              <span class="mi">3363</span><span class="p">,</span> <span class="mi">3803</span><span class="p">,</span> <span class="mi">3580</span><span class="p">,</span> <span class="mi">3801</span><span class="p">,</span> <span class="mi">2921</span><span class="p">,</span> <span class="mi">3799</span><span class="p">,</span> <span class="mi">4239</span><span class="p">,</span> <span class="mi">3359</span><span class="p">,</span> <span class="mi">3142</span><span class="p">,</span> <span class="mi">3797</span><span class="p">,</span> <span class="mi">3361</span><span class="p">,</span>
+              <span class="mi">4020</span><span class="p">,</span> <span class="mi">4241</span><span class="p">,</span> <span class="mi">4018</span><span class="p">,</span> <span class="mi">4889</span><span class="p">,</span> <span class="mi">4447</span><span class="p">,</span> <span class="mi">3357</span><span class="p">,</span> <span class="mi">5108</span><span class="p">,</span> <span class="mi">4888</span><span class="p">,</span> <span class="mi">5107</span><span class="p">,</span> <span class="mi">4446</span><span class="p">,</span> <span class="mi">3583</span><span class="p">,</span>
+              <span class="mi">3360</span><span class="p">,</span> <span class="mi">3802</span><span class="p">,</span> <span class="mi">3358</span><span class="p">,</span> <span class="mi">3578</span><span class="p">,</span> <span class="mi">2920</span><span class="p">,</span> <span class="mi">4019</span><span class="p">,</span> <span class="mi">3582</span><span class="p">,</span> <span class="mi">3362</span><span class="p">,</span> <span class="mi">3577</span><span class="p">,</span> <span class="mi">4887</span><span class="p">,</span> <span class="mi">3139</span><span class="p">,</span>
+              <span class="mi">3800</span><span class="p">,</span> <span class="mi">3579</span><span class="p">,</span> <span class="mi">3581</span><span class="p">,]</span>
+<span class="c1"># fmt: on</span>
+<span class="n">event_counter</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># variable to keep track of the event_id</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">initialize_system</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize system into a defined state</span>
+
+<span class="sd">    The function initializes the system into a defined state before</span>
+<span class="sd">    starting any script. This way, one can be sure that the system</span>
+<span class="sd">    is always in the same state while running the script, regardless</span>
+<span class="sd">    of what has been done before with it. The function also powers on</span>
+<span class="sd">    the stimulation units, which are turned off by default.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    RuntimeError</span>
+<span class="sd">        If system does not initialize correctly.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mx</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">mx</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">Core</span><span class="p">()</span><span class="o">.</span><span class="n">enable_stimulation_power</span><span class="p">(</span><span class="kc">True</span><span class="p">))</span> <span class="o">!=</span> <span class="s2">&quot;Ok&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;The system didn&#39;t initialize correctly.&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">configure_array</span><span class="p">(</span><span class="n">electrodes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">stim_electrodes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">Array</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Configure array</span>
+
+<span class="sd">    This function configures the array, given a list of recording</span>
+<span class="sd">    and stimulation electrodes. An important step in this function</span>
+<span class="sd">    is the routing, which happens once the electrodes are selected.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    electrodes : List[int]</span>
+<span class="sd">        List of the index of the recording electrodes</span>
+<span class="sd">    stim_electrodes : List[int]</span>
+<span class="sd">        List of the index of the stimulation electrodes</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    mx.Array</span>
+<span class="sd">        The configured array.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    To finalize the configuration, the array needs to be downloaded to</span>
+<span class="sd">    the MaxOne/Two. However, before being able to do that, we first need</span>
+<span class="sd">    to connect the stimulation units to the stimulation electrodes with the</span>
+<span class="sd">    function `connect_stim_units_to_stim_electrodes`. This is the reason</span>
+<span class="sd">    why `array.download` is not part of this function.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="s2">&quot;stimulation&quot;</span><span class="p">)</span>
+    <span class="n">array</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+    <span class="n">array</span><span class="o">.</span><span class="n">clear_selected_electrodes</span><span class="p">()</span>
+    <span class="n">array</span><span class="o">.</span><span class="n">select_electrodes</span><span class="p">(</span><span class="n">electrodes</span><span class="p">)</span>
+    <span class="n">array</span><span class="o">.</span><span class="n">select_stimulation_electrodes</span><span class="p">(</span><span class="n">stim_electrodes</span><span class="p">)</span>
+    <span class="n">array</span><span class="o">.</span><span class="n">route</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">array</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">load_config</span><span class="p">(</span><span class="n">config_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">Array</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load a previously created configuration</span>
+
+<span class="sd">    Load and configure an array from a previously generated</span>
+<span class="sd">    configuration, either through the Python API or through</span>
+<span class="sd">    the Scope GUI.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    config_file : str</span>
+<span class="sd">        Name of the previously generated config file.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    mx.Array</span>
+<span class="sd">        The configured array.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    FileNotFoundError</span>
+<span class="sd">        If the file cannot be found.</span>
+<span class="sd">    Exception</span>
+<span class="sd">        If the config_file cannot be loaded properly.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Config file &#39;</span><span class="si">{</span><span class="n">config_file</span><span class="si">}</span><span class="s2">&#39; not found.&quot;</span><span class="p">)</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="s2">&quot;stimulation&quot;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">array</span><span class="o">.</span><span class="n">load_config</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error loading config file &#39;</span><span class="si">{</span><span class="n">config_file</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">array</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">connect_stim_units_to_stim_electrodes</span><span class="p">(</span>
+    <span class="n">stim_electrodes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">array</span><span class="p">:</span> <span class="n">mx</span><span class="o">.</span><span class="n">Array</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Connect the stimulation units to the stimulation electrodes</span>
+
+<span class="sd">    Once an array configuration has been obtained, either through routing</span>
+<span class="sd">    or through loading a previous configuration, the stimulation units</span>
+<span class="sd">    can be connected to the desired electrodes.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    With this step, one needs to be careful, in rare cases it can happen</span>
+<span class="sd">    that an electrode cannot be stimulated. For example, the electrode</span>
+<span class="sd">    could not be routed (due to routing constraints), and the error message</span>
+<span class="sd">    &quot;No stimulation channel can connect to electrode: ...&quot; will be printed.</span>
+<span class="sd">    If this situation occurs, it is recommended to then select the electrode</span>
+<span class="sd">    next to it.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    stim_electrodes : List[int]</span>
+<span class="sd">        List of the index of the stimulation electrodes</span>
+<span class="sd">    array : mx.Array</span>
+<span class="sd">        The configured array</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    List[str]</span>
+<span class="sd">        List of stimulation units indices corresponding to the connected</span>
+<span class="sd">        stimulation electrodes</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    RuntimeError</span>
+<span class="sd">        If an electrode cannot be connected to a stimulation unit.</span>
+<span class="sd">        If two electrodes are connected to the same stimulation unit.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">stim_units</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">stim_el</span> <span class="ow">in</span> <span class="n">stim_electrodes</span><span class="p">:</span>
+        <span class="n">array</span><span class="o">.</span><span class="n">connect_electrode_to_stimulation</span><span class="p">(</span><span class="n">stim_el</span><span class="p">)</span>
+        <span class="n">stim</span> <span class="o">=</span> <span class="n">array</span><span class="o">.</span><span class="n">query_stimulation_at_electrode</span><span class="p">(</span><span class="n">stim_el</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">stim</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;No stimulation channel can connect to electrode: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">stim_el</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="n">stim_unit_int</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">stim</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">stim_unit_int</span> <span class="ow">in</span> <span class="n">stim_units</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Two electrodes connected to the same stim unit.</span><span class="se">\</span>
+<span class="s2">                               This is not allowed. Please Select a neighboring electrode of </span><span class="si">{</span><span class="n">stim_el</span><span class="si">}</span><span class="s2">!&quot;</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">stim_units</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stim_unit_int</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">stim_units</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">powerup_stim_unit</span><span class="p">(</span><span class="n">stim_unit</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">StimulationUnit</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Power up and connect a stimulation unit</span>
+
+<span class="sd">    This function powers up and connect a specific stimulation</span>
+<span class="sd">    unit in the MaxOne/Two. Without it, we would not be able to</span>
+<span class="sd">    send the prepared sequence to the device and it thus needs</span>
+<span class="sd">    to be run before running `mx.send(stim)` (as shown in the</span>
+<span class="sd">    function `configure_and_powerup_stim_units).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    stim_unit : str</span>
+<span class="sd">        The index of the stimulation unit to power up</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    mx.StimulationUnit</span>
+<span class="sd">        The powered up stimulation unit</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">mx</span><span class="o">.</span><span class="n">StimulationUnit</span><span class="p">(</span><span class="n">stim_unit</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">power_up</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">set_voltage_mode</span><span class="p">()</span>
+        <span class="o">.</span><span class="n">dac_source</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">configure_and_powerup_stim_units</span><span class="p">(</span><span class="n">stim_units</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">mx</span><span class="o">.</span><span class="n">StimulationUnit</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Configure and powerup the stimulation units</span>
+
+<span class="sd">    Once the electrodes are connected to the stimulation units,</span>
+<span class="sd">    the stimulation units need to be configured and powererd up.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    stim_units : List[str]</span>
+<span class="sd">        List of stimulation units indices corresponding to the connected</span>
+<span class="sd">        stimulation electrodes</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    List[mx.StimulationUnit]</span>
+<span class="sd">        List of stimulation unit objects corresponding to the connected</span>
+<span class="sd">        stimulation electrodes.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">stim_unit_commands</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">mx</span><span class="o">.</span><span class="n">StimulationUnit</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">stim_unit</span> <span class="ow">in</span> <span class="n">stim_units</span><span class="p">:</span>
+        <span class="n">stim</span> <span class="o">=</span> <span class="n">powerup_stim_unit</span><span class="p">(</span><span class="n">stim_unit</span><span class="p">)</span>
+        <span class="n">stim_unit_commands</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stim</span><span class="p">)</span>
+        <span class="n">mx</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">stim</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">stim_unit_commands</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">poweroff_all_stim_units</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Poweroff all stimulation units</span>
+
+<span class="sd">    This function is used to make sure that every stimulation units is</span>
+<span class="sd">    powered-off before starting sequentially to send the sequences to the</span>
+<span class="sd">    different stimulation units individually.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">stimulation_unit</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">32</span><span class="p">):</span>
+        <span class="n">stim</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">StimulationUnit</span><span class="p">(</span><span class="n">stimulation_unit</span><span class="p">)</span>
+        <span class="n">stim</span><span class="o">.</span><span class="n">power_up</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">stim</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">mx</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">stim</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">create_stim_pulse</span><span class="p">(</span>
+    <span class="n">seq</span><span class="p">:</span> <span class="n">mx</span><span class="o">.</span><span class="n">Sequence</span><span class="p">,</span> <span class="n">amplitude</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">delay_samples</span><span class="p">:</span> <span class="nb">int</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">Sequence</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create stimulation pulse</span>
+
+<span class="sd">    The stimulation units can be controlled through three independent</span>
+<span class="sd">    sources, what we call DAC channels (for digital analog converter).</span>
+<span class="sd">    By programming a DAC channel with digital values, we can control</span>
+<span class="sd">    the output the stimulation units. DAC inputs are in the range between</span>
+<span class="sd">    0 to 1023 bits, whereas 512 corresponds to zero volt and one bit</span>
+<span class="sd">    corresponds to 2.9 mV. When the stimulation buffers are set to voltage</span>
+<span class="sd">    mode, they act like an inverting amplifier, hence 512 + a number of bits corresponds to a negative voltage, or 512 - a number of bits corresponds to a positive voltage.</span>
+<span class="sd">    corresponds to a negative voltage. Thus, to give a pulse of 100mV,</span>
+<span class="sd">    the DAC channel temporarily would need to be set to 512 - 34 (100mV/2.9)</span>
+<span class="sd">    and back again to 512.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    In this example, all 32 units are controlled through the same DAC</span>
+<span class="sd">    channel ( dac_source(0) ), thus by programming a biphasic pulse</span>
+<span class="sd">    on DAC channel 0, all the stimulation units exhibit the biphasic</span>
+<span class="sd">    pulse.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    seq : mx.Sequence</span>
+<span class="sd">        Sequence object holding a sequence of commands, as generated</span>
+<span class="sd">        by `mx.Sequence()`.</span>
+<span class="sd">    amplitude : int</span>
+<span class="sd">        Amplitude of the pulse, with units [100mV/2.9], as explained above.</span>
+<span class="sd">    delay_samples : int</span>
+<span class="sd">        How many samples should sand between different sequence amplitude.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    mx.Sequence</span>
+<span class="sd">        Sequence object filled by the pulse.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">event_counter</span>
+    <span class="n">event_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">Event</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">event_counter</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;amplitude </span><span class="si">{</span><span class="n">amplitude</span><span class="si">}</span><span class="s2"> event_id </span><span class="si">{</span><span class="n">event_counter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span> <span class="o">-</span> <span class="n">amplitude</span><span class="p">))</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="n">delay_samples</span><span class="p">))</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span> <span class="o">+</span> <span class="n">amplitude</span><span class="p">))</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="n">delay_samples</span><span class="p">))</span>
+    <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DAC</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">512</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">seq</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">prepare_stim_sequence</span><span class="p">(</span>
+    <span class="n">number_pulses_per_train</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">inter_pulse_interval</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">phase</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">amplitude</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">changing_amplitude</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">max_amplitude</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">amplitude_interval</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">mx</span><span class="o">.</span><span class="n">Sequence</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Prepare a stimulation sequence.</span>
+
+<span class="sd">    This is just and example and it only illustrates how sequences</span>
+<span class="sd">    can be constructed.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    number_pulses_per_train : int</span>
+<span class="sd">        Number of repetitions of one pulse.</span>
+<span class="sd">    inter_pulse_interval : int</span>
+<span class="sd">        Number of samples to delay between two consecutive pulses.</span>
+<span class="sd">    phase : int</span>
+<span class="sd">        Number of samples before the switch from high-low (and vice versa)</span>
+<span class="sd">        voltage when creating stimulation pulse.</span>
+<span class="sd">    amplitude : int</span>
+<span class="sd">        Amplitude of the pulse (minimal if changing_amplitude is True).</span>
+<span class="sd">        Unit is millivolt.</span>
+<span class="sd">    changing_amplitude : Optional[bool]</span>
+<span class="sd">        Whether the pulse amplitude changes, by default False.</span>
+<span class="sd">    max_amplitude : Optional[int]</span>
+<span class="sd">        Maximal amplitude of the pulse if changing_amplitude is True.</span>
+<span class="sd">        Unit is millivolt.</span>
+<span class="sd">    amplitude_interval : Optional[int]</span>
+<span class="sd">        Increment amplitude interval if changing_amplitude is True.</span>
+<span class="sd">        Unit is millivolt.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    mx.Sequence</span>
+<span class="sd">        Sequence object filled with the stimulation sequence.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">seq</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">Sequence</span><span class="p">()</span>
+    <span class="n">dac_lsb_mV</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">query_DAC_lsb_mV</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">changing_amplitude</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">max_amplitude</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">amplitude_interval</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Both max_amplitude and amplitude_interval are required for changing_amplitude.&quot;</span>
+            <span class="p">)</span>
+        <span class="k">for</span> <span class="n">cur_amplitude</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">amplitude</span><span class="p">,</span> <span class="n">max_amplitude</span><span class="p">,</span> <span class="n">amplitude_interval</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">number_pulses_per_train</span><span class="p">):</span>
+                <span class="n">seq</span> <span class="o">=</span> <span class="n">create_stim_pulse</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">cur_amplitude</span><span class="o">/</span><span class="n">dac_lsb_mV</span><span class="p">),</span> <span class="n">phase</span><span class="p">)</span>
+                <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="n">inter_pulse_interval</span><span class="p">))</span>
+            <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="n">inter_pulse_interval</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">number_pulses_per_train</span><span class="p">):</span>
+            <span class="n">seq</span> <span class="o">=</span> <span class="n">create_stim_pulse</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">amplitude</span><span class="o">/</span><span class="n">dac_lsb_mV</span><span class="p">),</span> <span class="n">phase</span><span class="p">)</span>
+            <span class="n">seq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">DelaySamples</span><span class="p">(</span><span class="n">inter_pulse_interval</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">seq</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">send_stim_pulses_all_units</span><span class="p">(</span><span class="n">seq</span><span class="p">:</span> <span class="n">mx</span><span class="o">.</span><span class="n">Sequence</span><span class="p">,</span> <span class="n">number_pulse_trains</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Send stimulation pulses to all units simultaneously</span>
+
+<span class="sd">    This function sends the sequence of pulses built by the</span>
+<span class="sd">    function `prepare_stim_sequence` (the pulse train) for the</span>
+<span class="sd">    case where the stimulation pulses are sent simultaneously to all units.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    number_pulse_trains : int</span>
+<span class="sd">        The number of repetitions of the pulse sequence.</span>
+<span class="sd">    seq : mx.Sequence</span>
+<span class="sd">        The sequence of pulses</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">number_pulse_trains</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Send pulse&quot;</span><span class="p">)</span>
+        <span class="n">seq</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">send_stim_pulses_units_sequentially</span><span class="p">(</span>
+    <span class="n">seq</span><span class="p">:</span> <span class="n">mx</span><span class="o">.</span><span class="n">Sequence</span><span class="p">,</span> <span class="n">stim_units</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Send stimulation pulses to units sequentially</span>
+
+<span class="sd">    This function sends the sequence of pulses built by the</span>
+<span class="sd">    function `prepare_stim_sequence` for the case where there</span>
+<span class="sd">    stimulation pulses are sent sequentially to one unit at a time.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    seq : mx.Sequence</span>
+<span class="sd">        The sequence of pulses</span>
+<span class="sd">    stim_units : List[int]</span>
+<span class="sd">        List of stimulation units indices corresponding to the connected</span>
+<span class="sd">        stimulation electrodes</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">stim_unit</span> <span class="ow">in</span> <span class="n">stim_units</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Power up stimulation unit </span><span class="si">{</span><span class="n">stim_unit</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">stim</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">StimulationUnit</span><span class="p">(</span><span class="n">stim_unit</span><span class="p">)</span>
+        <span class="n">stim</span><span class="o">.</span><span class="n">power_up</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">set_voltage_mode</span><span class="p">()</span><span class="o">.</span><span class="n">dac_source</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">mx</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">stim</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Send pulse&quot;</span><span class="p">)</span>
+        <span class="n">seq</span><span class="o">.</span><span class="n">send</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Power down stimulation unit </span><span class="si">{</span><span class="n">stim_unit</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">stim</span> <span class="o">=</span> <span class="n">mx</span><span class="o">.</span><span class="n">StimulationUnit</span><span class="p">(</span><span class="n">stim_unit</span><span class="p">)</span><span class="o">.</span><span class="n">power_up</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">mx</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">stim</span><span class="p">)</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="c1"># The fist thing we do is initalize the system.</span>
+    <span class="n">initialize_system</span><span class="p">()</span>
+
+    <span class="c1"># We have selected some recording electrodes (see at the top,</span>
+    <span class="c1"># directly after the imports) and here we write down some</span>
+    <span class="c1"># stimulation electrodes.</span>
+    <span class="c1"># Note that these choices follow certain rules, i.e.</span>
+    <span class="c1">#   * You cannot choose more than 32 stimulation electrodes.</span>
+    <span class="c1">#   * You cannot choose more than 1024 recording electrodes.</span>
+    <span class="c1">#   * You cannot choose two stimulation electrodes that get connected</span>
+    <span class="c1"># to the same stimulation unit.</span>
+    <span class="c1"># The above selected recording electrodes are just an example and</span>
+    <span class="c1"># should showcase how one can select specific electrodes on the array.</span>
+    <span class="n">stim_electrodes</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3580</span><span class="p">,</span> <span class="mi">4887</span><span class="p">]</span>
+    <span class="n">array</span> <span class="o">=</span> <span class="n">configure_array</span><span class="p">(</span><span class="n">electrodes</span><span class="p">,</span> <span class="n">stim_electrodes</span><span class="p">)</span>
+    <span class="c1"># If instead we use a pre-defined config, we can load it like this:</span>
+    <span class="c1"># array = load_config(&quot;path/to/config/file.cfg&quot;)</span>
+
+    <span class="c1"># Select the subset of wells we want to stimulate.</span>
+    <span class="n">wells</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">mx</span><span class="o">.</span><span class="n">activate</span><span class="p">(</span><span class="n">wells</span><span class="p">)</span>
+    <span class="n">stim_units</span> <span class="o">=</span> <span class="n">connect_stim_units_to_stim_electrodes</span><span class="p">(</span><span class="n">stim_electrodes</span><span class="p">,</span> <span class="n">array</span><span class="p">)</span>
+    <span class="n">array</span><span class="o">.</span><span class="n">download</span><span class="p">(</span><span class="n">wells</span><span class="p">)</span>
+    <span class="c1"># Wait a few seconds to make sure the configuration is downloaded</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">mx</span><span class="o">.</span><span class="n">Timing</span><span class="o">.</span><span class="n">waitAfterDownload</span><span class="p">)</span>
+    <span class="n">mx</span><span class="o">.</span><span class="n">offset</span><span class="p">()</span>
+    <span class="c1"># Wait a few more seconds to make sure the offset compensation is done</span>
+    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
+
+    <span class="n">mx</span><span class="o">.</span><span class="n">clear_events</span><span class="p">()</span>  <span class="c1"># Empty event-buffer before adding anything to it</span>
+
+    <span class="n">simultaneous_and_same_seq</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="n">simultaneous_and_same_seq</span><span class="p">:</span>
+        <span class="n">stim_unit_commands</span> <span class="o">=</span> <span class="n">configure_and_powerup_stim_units</span><span class="p">(</span><span class="n">stim_units</span><span class="p">)</span>
+
+        <span class="c1"># At this stage, we can start the recordings. Note that, if we wish to have events written</span>
+        <span class="c1"># to the recorded file, it is important to construct our sequence after starting the recording.</span>
+        <span class="n">seq</span> <span class="o">=</span> <span class="n">prepare_stim_sequence</span><span class="p">(</span>
+            <span class="n">number_pulses_per_train</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+            <span class="n">inter_pulse_interval</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span>  <span class="c1"># samples</span>
+            <span class="n">phase</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>  <span class="c1"># 4 samples = 200us (4*50us)</span>
+            <span class="n">amplitude</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>  <span class="c1"># mV</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Note that since the loop to send the pulse trains is done in python,</span>
+        <span class="c1"># the timing between the pulse trains won&#39;t be particularly precise.</span>
+        <span class="c1"># Instead consider createing one large sequence (although there are</span>
+        <span class="c1"># some limitations for MaxOne here as well, see documentation).</span>
+        <span class="n">send_stim_pulses_all_units</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">number_pulse_trains</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">poweroff_all_stim_units</span><span class="p">()</span>
+
+        <span class="c1"># Start potential recordings.</span>
+        <span class="n">seq</span> <span class="o">=</span> <span class="n">prepare_stim_sequence</span><span class="p">(</span>
+            <span class="n">number_pulses_per_train</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+            <span class="n">inter_pulse_interval</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span>  <span class="c1"># samples</span>
+            <span class="n">phase</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>  <span class="c1"># 4 samples = 200us (4*50us)</span>
+            <span class="n">amplitude</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>  <span class="c1"># mV</span>
+            <span class="n">changing_amplitude</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">max_amplitude</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span>  <span class="c1"># mV</span>
+            <span class="n">amplitude_interval</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>  <span class="c1"># mV</span>
+        <span class="p">)</span>
+        <span class="n">send_stim_pulses_units_sequentially</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">stim_units</span><span class="p">)</span>
+
+    <span class="c1"># If one wishes to send 2 sequences (pulse trains) randomly, run for example:</span>
+    <span class="c1">#</span>
+    <span class="c1"># seq_1 = prepare_stim_sequence(number_pulses_per_train, inter_pulse_interval, phase, amplitude=200)</span>
+    <span class="c1"># seq_2 = prepare_stim_sequence(number_pulses_per_train, inter_pulse_interval, phase, amplitude=150)</span>
+
+    <span class="c1"># The pulse trains can be delivered whenever seems reasonable, or following</span>
+    <span class="c1"># a specific stimulation schedudle, such as:</span>
+
+    <span class="c1"># time.sleep(1)</span>
+    <span class="c1"># send_stim_pulses_all_units(number_pulse_trains, seq_1)</span>
+    <span class="c1"># time.sleep(5)</span>
+    <span class="c1"># send_stim_pulses_all_units(number_pulse_trains, seq_2)</span>
+</pre></div>
+</div>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="saving.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Saving</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="sim_stim.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Simultaneous Stimulation</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="../../_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="../../_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item"><p>API  version 1.1.0.</p></div>
+      
+        <div class="footer-item"><p>MaxLab Live version 25.2.0.</p></div>
+      
+    </div>
+  
+  
+    <div class="footer-items__center">
+      
+        <div class="footer-item">
+
+  <p class="copyright">
+    
+      © Copyright 2025, MaxWell Biosystems AG.
+      <br/>
+    
+  </p>
+</div>
+      
+        <div class="footer-item"><p class="last-updated">
+  Last updated on Jul 31, 2025.
+  <br/>
+</p></div>
+      
+    </div>
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item">
+<p class="theme-version">
+  <!-- # L10n: Setting the PST URL as an argument as this does not need to be localized -->
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.16.1.
+</p></div>
+      
+        <div class="footer-item">
+
+  <p class="sphinx-version">
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    <br/>
+  </p>
+</div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

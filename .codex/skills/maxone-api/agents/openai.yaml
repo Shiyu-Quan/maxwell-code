@@ -1,0 +1,4 @@
+interface:
+  display_name: "MaxOne API"
+  short_description: "MaxOne/MaxTwo API coding copilot"
+  default_prompt: "Use $maxone-api to design or debug MaxOne/MaxTwo Python or C++ API code against the local docs mirror."
