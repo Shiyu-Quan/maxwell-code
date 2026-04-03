@@ -151,6 +151,103 @@ def _load_putative_units(record_analysis_path: Path) -> Tuple[Dict[str, Any], Li
     return payload, units
 
 
+def _synthesize_putative_units(record_analysis: Dict[str, Any], count: int) -> List[Dict[str, Any]]:
+    channel_metrics = list(record_analysis.get("channel_metrics", []))
+    synthesized: List[Dict[str, Any]] = []
+    for row in channel_metrics:
+        electrode = int(row.get("electrode", -1))
+        if electrode < 0:
+            continue
+        synthesized.append(
+            {
+                "channel": int(row.get("channel", -1)),
+                "electrode": electrode,
+                "spike_count": int(row.get("spike_count", 0)),
+                "firing_rate_hz": float(row.get("firing_rate_hz", 0.0)),
+                "rms": float(row.get("rms", 0.0) if row.get("rms") is not None else 0.0),
+                "threshold": float(row.get("threshold", 0.0) if row.get("threshold") is not None else 0.0),
+                "median_negative_peak": float(
+                    row.get("median_negative_peak", 0.0) if row.get("median_negative_peak") is not None else 0.0
+                ),
+                "score": float(row.get("score", 0.0) if row.get("score") is not None else 0.0),
+            }
+        )
+        if len(synthesized) >= count:
+            break
+    return synthesized
+
+
+def _unique_electrodes(items: Sequence[int]) -> List[int]:
+    seen = set()
+    output: List[int] = []
+    for item in items:
+        value = int(item)
+        if value in seen:
+            continue
+        seen.add(value)
+        output.append(value)
+    return output
+
+
+def _write_debug_selection_from_manifest(
+    manifest: Dict[str, Any],
+    record_analysis: Dict[str, Any],
+    selection_path: Path,
+    analysis_path: Path,
+    reason: str,
+) -> None:
+    source_electrodes = _unique_electrodes(
+        int(item["source_electrode"]) for item in manifest.get("stimulus_recordings", [])
+    )
+    if len(source_electrodes) < 4:
+        raise RuntimeError(
+            "Debug mode fallback requires at least 4 probed source electrodes to synthesize selection config"
+        )
+
+    encoding = source_electrodes[:2]
+    training_pool = source_electrodes[2:]
+    if len(training_pool) < 2:
+        training_pool = source_electrodes[-2:]
+    training = training_pool[: max(2, min(6, len(training_pool)))]
+
+    record_units = list(record_analysis.get("putative_units", []))
+    candidate_decoding = _unique_electrodes(
+        int(unit.get("electrode", -1)) for unit in record_units if int(unit.get("electrode", -1)) >= 0
+    )
+    non_stim_decoding = [electrode for electrode in candidate_decoding if electrode not in set(encoding + training)]
+    if len(non_stim_decoding) >= 2:
+        decoding = non_stim_decoding[:2]
+    else:
+        fallback = [electrode for electrode in source_electrodes if electrode not in set(encoding)]
+        if len(fallback) < 2:
+            raise RuntimeError("Debug mode fallback could not synthesize two decoding electrodes")
+        decoding = fallback[:2]
+
+    selection_payload = {
+        "selection_config": {
+            "encoding_stim_electrodes": encoding,
+            "decoding_left_electrodes": [int(decoding[0])],
+            "decoding_right_electrodes": [int(decoding[1])],
+            "training_stim_electrodes": training,
+            "source_record_analysis": str(manifest.get("record_analysis_path", "")),
+            "source_stim_analysis": str(analysis_path),
+            "debug_mode": True,
+            "debug_reason": reason,
+        }
+    }
+    analysis_payload = {
+        "stimulate_analysis": {
+            "manifest_path": str(manifest.get("manifest_path", "")),
+            "record_analysis_path": str(manifest.get("record_analysis_path", "")),
+            "debug_mode": True,
+            "debug_reason": reason,
+            "probe_count": len(manifest.get("stimulus_recordings", [])),
+        }
+    }
+    _json_dump(analysis_path, analysis_payload)
+    _json_dump(selection_path, selection_payload)
+
+
 def _prepare_single_probe_sequence(stim_unit: int) -> mx.Sequence:
     seq = mx.Sequence()
     append_pulse_for_unit(
@@ -221,8 +318,26 @@ def run_stimulate_stage(
     stim_frequency_hz: float,
     stim_neighbor_radius: int,
     max_probe_units: int,
+    allow_empty_putative: bool = False,
+    mock_putative_count: int = MIN_PUTATIVE_UNITS,
 ) -> Dict[str, Path]:
-    record_analysis, putative_units = _load_putative_units(record_analysis_path)
+    try:
+        record_analysis, putative_units = _load_putative_units(record_analysis_path)
+    except RuntimeError as exc:
+        if not allow_empty_putative:
+            raise
+        payload = json.loads(record_analysis_path.read_text(encoding="utf-8"))["record_analysis"]
+        putative_units = _synthesize_putative_units(payload, max(mock_putative_count, MIN_PUTATIVE_UNITS))
+        if len(putative_units) < MIN_PUTATIVE_UNITS:
+            raise RuntimeError(
+                "Debug mode enabled but unable to synthesize enough putative units from recording metadata"
+            ) from exc
+        record_analysis = payload
+        print_info(
+            f"Using synthesized putative units for debug mode: {len(putative_units)} units "
+            f"(original analysis error: {exc})"
+        )
+
     timestamp = _timestamp()
     manifest_path = RECORDING_DIR / f"cartpole_stimulate_{timestamp}_manifest.json"
     analysis_path = RECORDING_DIR / f"cartpole_stimulate_{timestamp}_analysis.json"
@@ -255,6 +370,7 @@ def run_stimulate_stage(
 
     manifest = {
         "record_analysis_path": str(record_analysis_path),
+        "manifest_path": str(manifest_path),
         "record_analysis_summary": {
             "sample_rate_hz": record_analysis["sample_rate_hz"],
             "putative_unit_count": len(putative_units),
@@ -266,15 +382,28 @@ def run_stimulate_stage(
         raise RuntimeError(
             f"Only {len(stimulus_recordings)} stimulation probes succeeded; need at least 4 to configure roles"
         )
-    analyze_stimulation_manifest(
-        manifest_path=manifest_path,
-        output_path=analysis_path,
-        selection_output_path=selection_path,
-        first_order_window_ms=FIRST_ORDER_WINDOW_MS,
-        multi_order_window_ms=MULTI_ORDER_WINDOW_MS,
-        detection_multiplier=REALTIME_DETECTION_MULTIPLIER,
-        burst_fraction_threshold=0.25,
-    )
+    try:
+        analyze_stimulation_manifest(
+            manifest_path=manifest_path,
+            output_path=analysis_path,
+            selection_output_path=selection_path,
+            first_order_window_ms=FIRST_ORDER_WINDOW_MS,
+            multi_order_window_ms=MULTI_ORDER_WINDOW_MS,
+            detection_multiplier=REALTIME_DETECTION_MULTIPLIER,
+            burst_fraction_threshold=0.25,
+        )
+    except RuntimeError as exc:
+        if not allow_empty_putative:
+            raise
+        debug_reason = f"analysis_fallback: {exc}"
+        print_info(f"Falling back to synthesized debug selection config ({debug_reason})")
+        _write_debug_selection_from_manifest(
+            manifest=manifest,
+            record_analysis=record_analysis,
+            selection_path=selection_path,
+            analysis_path=analysis_path,
+            reason=debug_reason,
+        )
     print_success(f"Stimulate manifest written to {manifest_path}")
     print_success(f"Stimulate analysis written to {analysis_path}")
     print_success(f"Selection config written to {selection_path}")
@@ -294,6 +423,8 @@ def run_full_preexperiment(
     stim_frequency_hz: float,
     stim_neighbor_radius: int,
     max_probe_units: int,
+    allow_empty_putative: bool = False,
+    mock_putative_count: int = MIN_PUTATIVE_UNITS,
 ) -> Dict[str, Path]:
     record_outputs = run_record_stage(
         duration_s=duration_s,
@@ -309,6 +440,8 @@ def run_full_preexperiment(
         stim_frequency_hz=stim_frequency_hz,
         stim_neighbor_radius=stim_neighbor_radius,
         max_probe_units=max_probe_units,
+        allow_empty_putative=allow_empty_putative,
+        mock_putative_count=mock_putative_count,
     )
     outputs = dict(record_outputs)
     outputs.update(stimulate_outputs)
@@ -331,6 +464,8 @@ def main() -> int:
     stimulate_parser.add_argument("--stim-frequency-hz", type=float, default=STIM_FREQUENCY_HZ)
     stimulate_parser.add_argument("--stim-neighbor-radius", type=int, default=2)
     stimulate_parser.add_argument("--max-probe-units", type=int, default=16)
+    stimulate_parser.add_argument("--allow-empty-putative", action="store_true")
+    stimulate_parser.add_argument("--mock-putative-count", type=int, default=MIN_PUTATIVE_UNITS)
 
     full_parser = subparsers.add_parser("full")
     full_parser.add_argument("--duration-s", type=float, default=300.0)
@@ -339,6 +474,8 @@ def main() -> int:
     full_parser.add_argument("--stim-frequency-hz", type=float, default=STIM_FREQUENCY_HZ)
     full_parser.add_argument("--stim-neighbor-radius", type=int, default=2)
     full_parser.add_argument("--max-probe-units", type=int, default=16)
+    full_parser.add_argument("--allow-empty-putative", action="store_true")
+    full_parser.add_argument("--mock-putative-count", type=int, default=MIN_PUTATIVE_UNITS)
 
     args = parser.parse_args()
 
@@ -358,6 +495,8 @@ def main() -> int:
             stim_frequency_hz=args.stim_frequency_hz,
             stim_neighbor_radius=args.stim_neighbor_radius,
             max_probe_units=args.max_probe_units,
+            allow_empty_putative=args.allow_empty_putative,
+            mock_putative_count=args.mock_putative_count,
         )
     elif args.command == "full":
         run_full_preexperiment(
@@ -368,6 +507,8 @@ def main() -> int:
             stim_frequency_hz=args.stim_frequency_hz,
             stim_neighbor_radius=args.stim_neighbor_radius,
             max_probe_units=args.max_probe_units,
+            allow_empty_putative=args.allow_empty_putative,
+            mock_putative_count=args.mock_putative_count,
         )
     else:  # pragma: no cover - argparse guards this
         raise RuntimeError(f"Unsupported command {args.command}")

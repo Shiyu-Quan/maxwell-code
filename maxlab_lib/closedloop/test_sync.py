@@ -1,120 +1,136 @@
 #!/usr/bin/env python3
 
 """
-测试Python启动C++的同步通信功能（不涉及MaxLab硬件）
+测试 Python 启动 C++ 的同步通信功能（不涉及 MaxLab 硬件）。
+适配当前 maxone_with_filter 的 config.json 接口。
 """
 
-import subprocess
+import json
 import os
+import signal
+import subprocess
 import sys
-import time
+import tempfile
 import threading
+import time
 
-# C++可执行文件路径
 CPP_EXECUTABLE = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "build/maxone_with_filter"
+    "build/maxone_with_filter",
 )
 
-# C++程序参数（无GUI模式，启用同步）
-CPP_ARGS = [
-    "0",          # target_well
-    "5",          # window_ms
-    "8000",       # blanking_frames
-    "0",          # show_gui (0=无GUI)
-    "20000",      # sample_rate_hz
-    "5.0",        # threshold_multiplier
-    "-20",        # min_threshold
-    "1000",       # refractory_samples
-    "1024",       # channel_count
-    "1"           # wait_for_sync (1=等待同步)
-]
+
+def build_sync_test_config(log_path: str) -> dict:
+    return {
+        "target_well": 0,
+        "read_window_ms": 200,
+        "training_window_ms": 300,
+        "show_gui": False,
+        "wait_for_sync": True,
+        "channel_count": 1024,
+        "experiment_duration_s": 2.0,
+        "cycle_duration_s": 900.0,
+        "rest_duration_s": 0.0,
+        "encoding_scale_a": 7.0,
+        "encoding_scale_b": 0.15,
+        "ema_alpha": 0.2,
+        "force_scale_n": 10.0,
+        "sample_rate_hz": 20000.0,
+        "threshold_multiplier": 3.0,
+        "min_threshold": -20.0,
+        "refractory_samples": 1000,
+        "decoding_left_channels": [0],
+        "decoding_right_channels": [1],
+        "encoding_left_sequence": "encode_left_pulse",
+        "encoding_right_sequence": "encode_right_pulse",
+        "training_pattern_names": [],
+        "log_path": log_path,
+        "random_seed": 12345,
+        "mode": "continuous_adaptive",
+    }
+
 
 class CPPProcessManager:
-    """管理C++游戏进程的类"""
+    """管理 C++ 进程并观测同步日志。"""
 
-    def __init__(self, executable, args):
+    def __init__(self, executable: str, config_path: str):
         self.executable = executable
-        self.args = args
+        self.config_path = config_path
         self.process = None
         self.output_thread = None
         self.running = False
         self.ready_event = threading.Event()
+        self.start_ack_event = threading.Event()
+        self.lines = []
 
     def start(self):
-        """启动C++进程，使用stdin/stdout管道"""
         print(f"[C++] Starting: {self.executable}")
-        print(f"[C++] Arguments: {' '.join(self.args)}")
-
-        # 创建进程，配置stdin/stdout/stderr
+        print(f"[C++] Config: {self.config_path}")
         self.process = subprocess.Popen(
-            [self.executable] + self.args,
+            [self.executable, self.config_path],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,  # 合并stderr到stdout
+            stderr=subprocess.STDOUT,
             text=True,
-            bufsize=1
+            bufsize=1,
         )
-
-        # 启动后台线程持续读取输出
         self.running = True
         self.output_thread = threading.Thread(target=self._read_output, daemon=True)
         self.output_thread.start()
-
-        # 等待进程启动并等待同步信号
         self._wait_for_ready()
 
     def _read_output(self):
-        """后台线程持续读取C++输出"""
         ready_marker = "[SYNC] Waiting for start signal"
+        start_ack_marker = "[SYNC] Start signal received"
         while self.running and self.process and self.process.poll() is None:
             try:
                 line = self.process.stdout.readline()
                 if line:
-                    print(f"[C++ OUT] {line.strip()}")
+                    stripped = line.strip()
+                    self.lines.append(stripped)
+                    print(f"[C++ OUT] {stripped}")
                     if ready_marker in line and not self.ready_event.is_set():
                         self.ready_event.set()
-            except Exception as e:
+                    if start_ack_marker in line and not self.start_ack_event.is_set():
+                        self.start_ack_event.set()
+            except Exception:
                 break
 
     def _wait_for_ready(self):
-        """等待C++进程启动并进入等待状态"""
         print("[C++] Waiting for process to be ready...")
-
-        ready_marker = "[SYNC] Waiting for start signal"
         timeout = 10
         start_time = time.time()
-
         while time.time() - start_time < timeout and not self.ready_event.is_set():
             time.sleep(0.1)
 
         if self.ready_event.is_set():
             print("[C++] Process is ready and waiting for sync signal")
-        else:
-            print(f"[C++] Warning: Did not see ready marker within {timeout}s")
-            print("[C++] Continuing anyway, assuming process is ready")
+            return
+
+        print(f"[C++] Warning: Did not see ready marker within {timeout}s")
+        print("[C++] Captured output so far:")
+        for line in self.lines[-8:]:
+            print(f"  {line}")
 
     def send_start_signal(self):
-        """向C++进程发送启动信号"""
         if self.process is None or self.process.poll() is not None:
             raise RuntimeError("C++ process is not running")
 
         print("[C++] Sending 'start' signal...")
-        try:
-            self.process.stdin.write("start\n")
-            self.process.stdin.flush()
+        self.process.stdin.write("start\n")
+        self.process.stdin.flush()
+        print("[C++] Start signal sent successfully")
 
-            print("[C++] Start signal sent successfully")
-        except Exception as e:
-            raise RuntimeError(f"Failed to send start signal: {e}")
+    def wait_for_exit(self, timeout=10):
+        if self.process is None:
+            raise RuntimeError("C++ process is not running")
+        return self.process.wait(timeout=timeout)
 
     def stop(self):
-        """停止C++进程"""
         if self.process is None:
             return
 
         print("[C++] Stopping process...")
-        import signal
         self.process.send_signal(signal.SIGINT)
 
         try:
@@ -132,69 +148,83 @@ class CPPProcessManager:
 
         self.process = None
 
+
+def write_temp_config() -> str:
+    fd, path = tempfile.mkstemp(prefix="cartpole_sync_test_", suffix=".json")
+    os.close(fd)
+    payload = build_sync_test_config(log_path="/tmp/cartpole_sync_test_episodes.jsonl")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f)
+    return path
+
+
 def run_test():
-    """运行测试"""
     print("=" * 60)
     print("PYTHON-C++ SYNC TEST (NO HARDWARE)")
     print("=" * 60)
 
     cpp_manager = None
+    config_path = None
     try:
-        # 步骤1：启动C++游戏进程
-        print("\n=== STEP 1: Starting C++ Game Process ===")
-        cpp_manager = CPPProcessManager(CPP_EXECUTABLE, CPP_ARGS)
-        cpp_manager.start()
+        config_path = write_temp_config()
+        print(f"[TEST] Generated config: {config_path}")
 
-        # 步骤2：等待几秒钟（模拟硬件配置）
+        print("\n=== STEP 1: Starting C++ Process ===")
+        cpp_manager = CPPProcessManager(CPP_EXECUTABLE, config_path)
+        cpp_manager.start()
+        if not cpp_manager.ready_event.is_set():
+            raise RuntimeError("Did not observe sync ready marker")
+
         print("\n=== STEP 2: Simulating Hardware Configuration ===")
         print("[TEST] Waiting 2 seconds...")
         time.sleep(2)
 
-        # 步骤3：发送启动信号
         print("\n=== STEP 3: Sending Start Signal ===")
         cpp_manager.send_start_signal()
+        if not cpp_manager.start_ack_event.wait(timeout=2):
+            raise RuntimeError("Did not observe start-ack marker from C++")
 
-        # 步骤4：运行一段时间
-        print("\n=== STEP 4: Running for 5 seconds ===")
-        start_time = time.time()
-        while time.time() - start_time < 5:
-            if cpp_manager.process.poll() is not None:
-                print("[C++] Warning: C++ process exited early!")
-                break
-            time.sleep(1)
-            elapsed = int(time.time() - start_time)
-            remaining = 5 - elapsed
-            print(f"\r[TEST] Elapsed: {elapsed}s / 5s (remaining: {remaining}s)", end="")
+        print("\n=== STEP 4: Waiting for expected no-server failure ===")
+        exit_code = cpp_manager.wait_for_exit(timeout=8)
+        print(f"[TEST] C++ exited with code {exit_code}")
 
-        print("\n[TEST] Test duration completed")
+        combined_output = "\n".join(cpp_manager.lines)
+        expected_markers = [
+            "No connection to the mxwserver",
+            "Cannot establish connection!",
+            "Exception:",
+        ]
+        if not any(marker in combined_output for marker in expected_markers):
+            raise RuntimeError("C++ did not report expected no-server failure marker")
 
         print("\n" + "=" * 60)
-        print("TEST COMPLETED SUCCESSFULLY")
+        print("TEST COMPLETED SUCCESSFULLY (expected no-server failure observed)")
         print("=" * 60)
-
         return 0
 
     except KeyboardInterrupt:
         print("\n\n[TEST] Test interrupted by user")
         return 1
-
     except Exception as e:
         print(f"\n[ERROR] Test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
-
     finally:
         print("\n[TEST] Cleaning up...")
         if cpp_manager is not None:
             cpp_manager.stop()
+        if config_path and os.path.exists(config_path):
+            os.remove(config_path)
         print("[TEST] Cleanup complete")
+
 
 if __name__ == "__main__":
     if not os.path.exists(CPP_EXECUTABLE):
         print(f"ERROR: C++ executable not found: {CPP_EXECUTABLE}")
         print("Please build the C++ program first:")
-        print("  cd maxlab_lib && make maxone_with_filter")
+        print("  cd maxlab_lib && make USE_QT=0 maxone_with_filter")
         sys.exit(1)
 
     exit_code = run_test()
