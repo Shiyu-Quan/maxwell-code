@@ -36,6 +36,7 @@ REALTIME_DETECTION_MULTIPLIER = 3.0
 RECORD_REFRACTORY_SAMPLES = 20
 FIRST_ORDER_WINDOW_MS = (10.0, 18.0)
 MULTI_ORDER_WINDOW_MS = (10.0, 200.0)
+BURST_MAD_MULTIPLIER = 3.0
 STIM_REPETITIONS = 50
 STIM_FREQUENCY_HZ = 2.0
 MIN_PUTATIVE_UNITS = 8
@@ -390,7 +391,7 @@ def run_stimulate_stage(
             first_order_window_ms=FIRST_ORDER_WINDOW_MS,
             multi_order_window_ms=MULTI_ORDER_WINDOW_MS,
             detection_multiplier=REALTIME_DETECTION_MULTIPLIER,
-            burst_fraction_threshold=0.25,
+            burst_mad_multiplier=BURST_MAD_MULTIPLIER,
         )
     except RuntimeError as exc:
         if not allow_empty_putative:

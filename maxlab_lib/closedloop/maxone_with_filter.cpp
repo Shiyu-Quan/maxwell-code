@@ -55,12 +55,25 @@ struct RunConfig {
     std::string encoding_left_sequence;
     std::string encoding_right_sequence;
     std::vector<std::string> training_pattern_names;
+    std::vector<int> encoding_stim_electrodes;
+    std::vector<int> training_stim_electrodes;
+    std::vector<int> decoding_left_electrodes;
+    std::vector<int> decoding_right_electrodes;
+    double stim_pulse_amplitude_mV = 0.0;
+    int stim_phase_us = 0;
+    double stim_inter_pulse_interval_ms = 0.0;
+    double stim_training_frequency_hz = 0.0;
     std::string log_path;
     std::uint32_t random_seed = 12345;
 };
 
 struct JsonParser {
     explicit JsonParser(std::string text) : text_(std::move(text)) {}
+
+    bool hasKey(const std::string& key) const {
+        const std::string pattern = "\"" + key + "\"";
+        return text_.find(pattern) != std::string::npos;
+    }
 
     std::string stringValue(const std::string& key) const {
         const std::size_t value_start = valueStart(key);
@@ -111,6 +124,14 @@ struct JsonParser {
             if (text_[pos] == ',') ++pos;
         }
         return result;
+    }
+
+    std::vector<int> intArrayValueOr(const std::string& key, const std::vector<int>& fallback) const {
+        return hasKey(key) ? intArrayValue(key) : fallback;
+    }
+
+    double numberValueOr(const std::string& key, double fallback) const {
+        return hasKey(key) ? numberValue(key) : fallback;
     }
 
 private:
@@ -250,6 +271,7 @@ struct AppState {
     double right_phase = 0.0;
     bool was_active_phase = false;
     int episode_index = 0;
+    std::string last_training_sequence = "none";
 };
 
 void on_sigint(int) {
@@ -320,6 +342,18 @@ void waitForStartSignal(bool enable_sync) {
     }
 }
 
+std::string joinIntVector(const std::vector<int>& values) {
+    if (values.empty()) return "[]";
+    std::ostringstream oss;
+    oss << "[";
+    for (std::size_t i = 0; i < values.size(); ++i) {
+        if (i > 0) oss << ",";
+        oss << values[i];
+    }
+    oss << "]";
+    return oss.str();
+}
+
 void updateWindow(AppState& state, const RunConfig& config, SteadyClock::time_point now) {
     state.detector.getCounts(&state.spike_counts);
 
@@ -373,6 +407,14 @@ void updateWindow(AppState& state, const RunConfig& config, SteadyClock::time_po
             static_cast<float>(theta),
             static_cast<float>(state.task.getTimeBalanced()),
             static_cast<float>(force_newtons));
+        state.window->setTelemetry(
+            static_cast<float>(state.left_rate),
+            static_cast<float>(state.right_rate),
+            static_cast<float>(frequency_left),
+            static_cast<float>(frequency_right),
+            state.episode_index,
+            now < state.training_until,
+            state.last_training_sequence);
     }
 
     if (terminal) {
@@ -399,6 +441,9 @@ void updateWindow(AppState& state, const RunConfig& config, SteadyClock::time_po
         if (decision.delivered) {
             maxlab::verifyStatus(maxlab::sendSequence(decision.sequence_name.c_str()));
             state.training_until = now + std::chrono::milliseconds(config.training_window_ms);
+            state.last_training_sequence = decision.sequence_name;
+        } else {
+            state.last_training_sequence = "none";
         }
 
         resetEpisodeState(state);
@@ -458,6 +503,14 @@ RunConfig loadConfig(const std::string& config_path) {
     config.encoding_left_sequence = parser.stringValue("encoding_left_sequence");
     config.encoding_right_sequence = parser.stringValue("encoding_right_sequence");
     config.training_pattern_names = parser.stringArrayValue("training_pattern_names");
+    config.encoding_stim_electrodes = parser.intArrayValueOr("encoding_stim_electrodes", {});
+    config.training_stim_electrodes = parser.intArrayValueOr("training_stim_electrodes", {});
+    config.decoding_left_electrodes = parser.intArrayValueOr("decoding_left_electrodes", {});
+    config.decoding_right_electrodes = parser.intArrayValueOr("decoding_right_electrodes", {});
+    config.stim_pulse_amplitude_mV = parser.numberValueOr("stim_pulse_amplitude_mV", 0.0);
+    config.stim_phase_us = static_cast<int>(parser.numberValueOr("stim_phase_us", 0.0));
+    config.stim_inter_pulse_interval_ms = parser.numberValueOr("stim_inter_pulse_interval_ms", 0.0);
+    config.stim_training_frequency_hz = parser.numberValueOr("stim_training_frequency_hz", 0.0);
     config.log_path = parser.stringValue("log_path");
     config.random_seed = static_cast<std::uint32_t>(parser.numberValue("random_seed"));
 
@@ -543,6 +596,15 @@ int main(int argc, char* argv[]) {
     if (config.show_gui) {
         QApplication app(argc, argv);
         GameWindow window;
+        window.setRuntimeInfo(
+            joinIntVector(config.encoding_stim_electrodes),
+            joinIntVector(config.training_stim_electrodes),
+            joinIntVector(config.decoding_left_electrodes),
+            joinIntVector(config.decoding_right_electrodes),
+            static_cast<float>(config.stim_pulse_amplitude_mV * 1000.0),
+            static_cast<int>(config.training_pattern_names.size()),
+            config.read_window_ms,
+            config.training_window_ms);
         window.show();
 
         std::thread worker([&]() {

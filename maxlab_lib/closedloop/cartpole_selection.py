@@ -322,6 +322,15 @@ def _mean_probability(mask: Sequence[bool]) -> float:
     return float(np.mean(np.asarray(mask, dtype=np.float64)))
 
 
+def _median_plus_mad_threshold(values: Sequence[float], mad_multiplier: float = 3.0) -> float:
+    if not values:
+        return 1.0
+    arr = np.asarray(values, dtype=np.float64)
+    median = float(np.median(arr))
+    mad = float(np.median(np.abs(arr - median)))
+    return median + mad_multiplier * mad
+
+
 def _select_roles_from_probe_results(
     probe_results: Sequence[StimulusProbeSummary],
     min_training_units: int = 4,
@@ -428,7 +437,7 @@ def analyze_stimulation_manifest(
     first_order_window_ms: Tuple[float, float] = (10.0, 18.0),
     multi_order_window_ms: Tuple[float, float] = (10.0, 200.0),
     detection_multiplier: float = 3.0,
-    burst_fraction_threshold: float = 0.25,
+    burst_mad_multiplier: float = 3.0,
 ) -> Dict[str, Any]:
     _require_h5py()
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -462,7 +471,7 @@ def analyze_stimulation_manifest(
             continue
 
         target_probabilities: List[PairConnectivity] = []
-        burst_events: List[bool] = []
+        responder_fractions: List[float] = []
         for event_index in event_sample_indices:
             responders = 0
             for target_unit in putative_units:
@@ -471,8 +480,9 @@ def analyze_stimulation_manifest(
                 threshold = float(threshold_by_channel[target_channel])
                 if _has_threshold_crossing(trace, int(event_index + multi_start), int(event_index + multi_end), threshold):
                     responders += 1
-            responder_fraction = responders / max(1, len(putative_units))
-            burst_events.append(responder_fraction >= burst_fraction_threshold)
+            responder_fractions.append(responders / max(1, len(putative_units)))
+        burst_threshold = _median_plus_mad_threshold(responder_fractions, burst_mad_multiplier)
+        burst_events = [value >= burst_threshold for value in responder_fractions]
 
         for target_unit in putative_units:
             target_channel = int(target_unit["channel"])
@@ -520,7 +530,8 @@ def analyze_stimulation_manifest(
             "sample_rate_hz": sample_rate_hz,
             "first_order_window_ms": list(first_order_window_ms),
             "multi_order_window_ms": list(multi_order_window_ms),
-            "burst_fraction_threshold": burst_fraction_threshold,
+            "burst_detection_method": "median_plus_3mad" if burst_mad_multiplier == 3.0 else "median_plus_k_mad",
+            "burst_mad_multiplier": burst_mad_multiplier,
             "probe_summaries": [
                 {
                     "source_channel": probe.source_channel,
