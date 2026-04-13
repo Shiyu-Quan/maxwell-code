@@ -39,7 +39,8 @@ TrainingDecision TrainingController::onEpisodeEnd(double reward_seconds) {
         return decision;
     }
 
-    if (decision.mean_5 > decision.mean_20) {
+    // STAR methods condition: only stimulate when short-term performance drops.
+    if (decision.mean_5 >= decision.mean_20) {
         return decision;
     }
 

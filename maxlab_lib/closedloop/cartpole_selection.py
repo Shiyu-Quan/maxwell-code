@@ -62,6 +62,9 @@ class PairConnectivity:
     target_electrode: int
     first_order_probability: float
     multi_order_probability: float
+    multi_order_spike_count_mean: float
+    event_count: int
+    nonburst_event_count: int
 
 
 @dataclass
@@ -220,12 +223,36 @@ def _estimate_footprint(
         if len(selected_electrodes) >= max_footprint_electrodes:
             break
 
+    electrode_to_channel = {int(e): int(c) for c, e in channel_to_electrode.items() if int(e) >= 0}
+    center_peak_latency = int(np.argmax(center_waveform)) if center_waveform.size else -1
+    center_trough_latency = int(np.argmin(center_waveform)) if center_waveform.size else -1
+    corr_values: List[float] = []
+    for electrode in selected_electrodes:
+        if electrode == center_electrode:
+            continue
+        neighbor_channel = electrode_to_channel.get(int(electrode))
+        if neighbor_channel is None:
+            continue
+        neighbor_waveform = np.asarray(waveforms.get(neighbor_channel, np.asarray([])), dtype=np.float64)
+        if center_waveform.size == 0 or neighbor_waveform.size == 0:
+            continue
+        size = min(center_waveform.size, neighbor_waveform.size)
+        first = center_waveform[:size]
+        second = neighbor_waveform[:size]
+        if np.std(first) <= 1e-12 or np.std(second) <= 1e-12:
+            continue
+        corr_values.append(float(np.corrcoef(first, second)[0, 1]))
+
     summary = {
         "center_min": float(np.min(center_waveform)) if center_waveform.size else 0.0,
         "center_max": float(np.max(center_waveform)) if center_waveform.size else 0.0,
         "center_p2p": center_p2p,
         "sample_count": float(center_waveform.size),
         "footprint_electrode_count": float(len(selected_electrodes)),
+        "sta_peak_latency_samples": float(center_peak_latency),
+        "sta_trough_latency_samples": float(center_trough_latency),
+        "sta_neighbor_corr_mean": float(np.mean(np.asarray(corr_values, dtype=np.float64))) if corr_values else 0.0,
+        "sta_neighbor_corr_max": float(np.max(np.asarray(corr_values, dtype=np.float64))) if corr_values else 0.0,
     }
     return selected_electrodes, summary
 
@@ -396,6 +423,71 @@ def _has_threshold_crossing(
     return bool(np.any(trace[bounded_start:bounded_end] <= threshold))
 
 
+def _count_negative_spikes_in_window(
+    trace: np.ndarray,
+    start_index: int,
+    end_index: int,
+    threshold: float,
+    refractory_samples: int = 20,
+) -> int:
+    if end_index <= start_index:
+        return 0
+    bounded_start = max(0, start_index)
+    bounded_end = min(trace.shape[0], end_index)
+    if bounded_end <= bounded_start:
+        return 0
+    window = np.asarray(trace[bounded_start:bounded_end], dtype=np.float64)
+    spike_indices, _ = _detect_negative_spikes(window, threshold, refractory_samples)
+    return int(spike_indices.size)
+
+
+def _summarize_target_connectivity(
+    trace: np.ndarray,
+    event_sample_indices: np.ndarray,
+    threshold: float,
+    first_start: int,
+    first_end: int,
+    multi_start: int,
+    multi_end: int,
+    burst_events: Sequence[bool],
+) -> Dict[str, float]:
+    first_hits: List[bool] = []
+    multi_counts_nonburst: List[int] = []
+    for event_idx, event_index in enumerate(event_sample_indices):
+        event_base = int(event_index)
+        first_spike_count = _count_negative_spikes_in_window(
+            trace,
+            event_base + first_start,
+            event_base + first_end,
+            threshold,
+        )
+        first_hits.append(first_spike_count > 0)
+
+        multi_spike_count = _count_negative_spikes_in_window(
+            trace,
+            event_base + multi_start,
+            event_base + multi_end,
+            threshold,
+        )
+        if event_idx < len(burst_events) and not bool(burst_events[event_idx]):
+            multi_counts_nonburst.append(multi_spike_count)
+
+    first_order_probability = _mean_probability(first_hits)
+    multi_order_probability = _mean_probability([count > 0 for count in multi_counts_nonburst])
+    multi_order_spike_count_mean = (
+        float(np.mean(np.asarray(multi_counts_nonburst, dtype=np.float64)))
+        if multi_counts_nonburst
+        else 0.0
+    )
+    return {
+        "first_order_probability": first_order_probability,
+        "multi_order_probability": multi_order_probability,
+        "multi_order_spike_count_mean": multi_order_spike_count_mean,
+        "event_count": float(len(event_sample_indices)),
+        "nonburst_event_count": float(len(multi_counts_nonburst)),
+    }
+
+
 def _event_sample_indices(frame_numbers: np.ndarray, event_frame_numbers: np.ndarray) -> np.ndarray:
     if frame_numbers.size == 0 or event_frame_numbers.size == 0:
         return np.asarray([], dtype=np.int64)
@@ -420,108 +512,170 @@ def _median_plus_mad_threshold(values: Sequence[float], mad_multiplier: float = 
 
 def _select_roles_from_probe_results(
     probe_results: Sequence[StimulusProbeSummary],
-    min_training_units: int = 4,
-    max_training_units: int = 8,
-) -> SelectionConfig:
+    min_training_units: int = 5,
+    max_training_units: int = 12,
+) -> Tuple[SelectionConfig, Dict[str, Any]]:
     if len(probe_results) < 4:
         raise RuntimeError("Stimulate analysis produced too few stimulated units to configure cartpole roles")
 
-    channel_to_probe = {probe.source_channel: probe for probe in probe_results}
-    source_score_rows: List[Tuple[float, StimulusProbeSummary]] = []
+    source_by_electrode = {probe.source_electrode: probe for probe in probe_results}
+    source_score_rows: List[Tuple[float, Dict[str, float], StimulusProbeSummary]] = []
+    response_threshold = 0.1
     for probe in probe_results:
         if not probe.target_probabilities:
             continue
-        mean_first = float(np.mean([pair.first_order_probability for pair in probe.target_probabilities]))
-        mean_multi = float(np.mean([pair.multi_order_probability for pair in probe.target_probabilities]))
-        score = mean_first + 0.25 * mean_multi - 0.5 * probe.burst_probability
-        source_score_rows.append((score, probe))
-    source_score_rows.sort(key=lambda row: row[0], reverse=True)
+        first_values = [float(pair.first_order_probability) for pair in probe.target_probabilities]
+        multi_values = [float(pair.multi_order_spike_count_mean) for pair in probe.target_probabilities]
+        responder_ratio = _mean_probability([value >= response_threshold for value in first_values])
+        mean_first = float(np.mean(first_values))
+        mean_multi_count = float(np.mean(multi_values))
+        selectivity = 1.0 - responder_ratio
+        score = selectivity + 0.1 * mean_first + 0.05 * mean_multi_count - 0.5 * probe.burst_probability
+        source_score_rows.append(
+            (
+                score,
+                {
+                    "selectivity": float(selectivity),
+                    "responder_ratio_c1_ge_0p1": float(responder_ratio),
+                    "mean_first_order_probability": mean_first,
+                    "mean_multi_order_spike_count": mean_multi_count,
+                    "burst_probability": float(probe.burst_probability),
+                },
+                probe,
+            )
+        )
+    source_score_rows.sort(key=lambda row: (-row[0], int(row[2].source_electrode)))
+    if len(source_score_rows) < 4:
+        raise RuntimeError("Stimulate analysis produced too few valid source probes to configure cartpole roles")
+
+    def _lookup_pair(source: StimulusProbeSummary, target_electrode: int) -> Optional[PairConnectivity]:
+        for pair in source.target_probabilities:
+            if int(pair.target_electrode) == int(target_electrode):
+                return pair
+        return None
+
+    eligible_encoding = [row for row in source_score_rows if row[1]["burst_probability"] < 0.5]
+    if len(eligible_encoding) < 2:
+        eligible_encoding = source_score_rows
 
     encoding_sources: List[StimulusProbeSummary] = []
-    for _, probe in source_score_rows:
-        if len(encoding_sources) >= 2:
-            break
-        if any(existing.source_electrode == probe.source_electrode for existing in encoding_sources):
-            continue
-        encoding_sources.append(probe)
+    best_pair_score: Optional[float] = None
+    for first_idx in range(len(eligible_encoding)):
+        for second_idx in range(first_idx + 1, len(eligible_encoding)):
+            first_row = eligible_encoding[first_idx]
+            second_row = eligible_encoding[second_idx]
+            first_probe = first_row[2]
+            second_probe = second_row[2]
+            first_to_second = _lookup_pair(first_probe, second_probe.source_electrode)
+            second_to_first = _lookup_pair(second_probe, first_probe.source_electrode)
+            mutual_c1 = max(
+                float(first_to_second.first_order_probability) if first_to_second is not None else 0.0,
+                float(second_to_first.first_order_probability) if second_to_first is not None else 0.0,
+            )
+            pair_score = float(first_row[0] + second_row[0] - 1.5 * mutual_c1)
+            if best_pair_score is None or pair_score > best_pair_score:
+                best_pair_score = pair_score
+                encoding_sources = [first_probe, second_probe]
     if len(encoding_sources) != 2:
-        raise RuntimeError("Unable to choose two encoding units from stimulate analysis")
+        encoding_sources = [eligible_encoding[0][2], eligible_encoding[1][2]]
 
-    target_scores: Dict[int, float] = {}
-    for source in encoding_sources:
-        for pair in source.target_probabilities:
-            if pair.target_electrode in {enc.source_electrode for enc in encoding_sources}:
-                continue
-            contribution = pair.first_order_probability + 0.25 * pair.multi_order_probability
-            target_scores[pair.target_channel] = target_scores.get(pair.target_channel, 0.0) + contribution
-
-    selected_target_channels: List[int] = []
-    for target_channel, _ in sorted(target_scores.items(), key=lambda item: item[1], reverse=True):
-        target_probe = channel_to_probe.get(target_channel)
-        target_electrode = target_probe.source_electrode if target_probe is not None else None
-        if target_electrode is None:
-            for source in encoding_sources:
-                for pair in source.target_probabilities:
-                    if pair.target_channel == target_channel:
-                        target_electrode = pair.target_electrode
-                        break
-                if target_electrode is not None:
-                    break
-        if target_electrode is None or target_electrode in {enc.source_electrode for enc in encoding_sources}:
+    used_electrodes = {probe.source_electrode for probe in encoding_sources}
+    decoding_electrodes: List[int] = []
+    decode_selection_notes: List[Dict[str, Any]] = []
+    for source_probe in encoding_sources:
+        candidates = [
+            pair
+            for pair in source_probe.target_probabilities
+            if int(pair.target_electrode) not in used_electrodes
+        ]
+        if not candidates:
             continue
-        selected_target_channels.append(target_channel)
-        if len(selected_target_channels) >= 2:
-            break
-    if len(selected_target_channels) != 2:
+        best_c1 = max(candidates, key=lambda pair: float(pair.first_order_probability))
+        if float(best_c1.first_order_probability) >= response_threshold:
+            chosen = best_c1
+            chosen_reason = "c1_strongest"
+        else:
+            chosen = max(
+                candidates,
+                key=lambda pair: (
+                    float(pair.multi_order_spike_count_mean),
+                    float(pair.first_order_probability),
+                ),
+            )
+            chosen_reason = "cm_fallback"
+        used_electrodes.add(int(chosen.target_electrode))
+        decoding_electrodes.append(int(chosen.target_electrode))
+        decode_selection_notes.append(
+            {
+                "source_electrode": int(source_probe.source_electrode),
+                "selected_target_electrode": int(chosen.target_electrode),
+                "first_order_probability": float(chosen.first_order_probability),
+                "multi_order_spike_count_mean": float(chosen.multi_order_spike_count_mean),
+                "reason": chosen_reason,
+            }
+        )
+
+    if len(decoding_electrodes) != 2:
         raise RuntimeError("Unable to choose two decoding units from stimulate analysis")
 
-    decoding_electrodes: List[int] = []
-    for target_channel in selected_target_channels:
-        electrode = None
-        for source in encoding_sources:
-            for pair in source.target_probabilities:
-                if pair.target_channel == target_channel:
-                    electrode = pair.target_electrode
-                    break
-            if electrode is not None:
-                break
-        if electrode is None:
-            raise RuntimeError(f"Missing electrode mapping for decoding channel {target_channel}")
-        decoding_electrodes.append(electrode)
-
-    training_candidates: List[StimulusProbeSummary] = []
-    used_electrodes = {enc.source_electrode for enc in encoding_sources} | set(decoding_electrodes)
-    for _, probe in source_score_rows:
+    training_candidates: List[Tuple[float, StimulusProbeSummary]] = []
+    for score, metrics, probe in source_score_rows:
         if probe.source_electrode in used_electrodes:
             continue
-        if probe.burst_probability >= 0.5:
+        if metrics["burst_probability"] >= 0.5:
             continue
-        training_candidates.append(probe)
+        training_score = float(
+            metrics["mean_first_order_probability"]
+            + 0.25 * metrics["mean_multi_order_spike_count"]
+            + 0.25 * metrics["selectivity"]
+        )
+        training_candidates.append((training_score, probe))
 
-    training_electrodes = [probe.source_electrode for probe in training_candidates[:max_training_units]]
+    training_candidates.sort(key=lambda row: (-row[0], int(row[1].source_electrode)))
+    training_electrodes = [int(probe.source_electrode) for _, probe in training_candidates[:max_training_units]]
     if len(training_electrodes) < min_training_units:
         fallback = [
-            probe.source_electrode
-            for _, probe in source_score_rows
-            if probe.source_electrode not in used_electrodes
+            int(probe.source_electrode)
+            for _, _, probe in source_score_rows
+            if int(probe.source_electrode) not in used_electrodes
         ]
-        training_electrodes = fallback[: max(min_training_units, min(max_training_units, len(fallback)))]
+        max_fallback = max(min_training_units, min(max_training_units, len(fallback)))
+        training_electrodes = fallback[:max_fallback]
 
-    return SelectionConfig(
-        encoding_stim_electrodes=[enc.source_electrode for enc in encoding_sources],
-        decoding_left_electrodes=[decoding_electrodes[0]],
-        decoding_right_electrodes=[decoding_electrodes[1]],
+    selection = SelectionConfig(
+        encoding_stim_electrodes=[int(enc.source_electrode) for enc in encoding_sources],
+        decoding_left_electrodes=[int(decoding_electrodes[0])],
+        decoding_right_electrodes=[int(decoding_electrodes[1])],
         training_stim_electrodes=training_electrodes,
         source_record_analysis="",
         source_stim_analysis="",
     )
+    selection_audit = {
+        "selection_constraints": {
+            "encoding_requires_low_mutual_c1": True,
+            "encoding_prefers_high_selectivity": True,
+            "training_requires_burst_lt_0p5": True,
+            "decode_prefers_c1_then_cm_fallback": True,
+        },
+        "ranked_source_rows": [
+            {
+                "source_electrode": int(probe.source_electrode),
+                "source_channel": int(probe.source_channel),
+                "score": float(score),
+                **metrics,
+            }
+            for score, metrics, probe in source_score_rows
+        ],
+        "decode_selection": decode_selection_notes,
+    }
+    return selection, selection_audit
 
 
 def analyze_stimulation_manifest(
     manifest_path: Path,
     output_path: Path,
     selection_output_path: Path,
-    first_order_window_ms: Tuple[float, float] = (10.0, 18.0),
+    first_order_window_ms: Tuple[float, float] = (0.0, 10.0),
     multi_order_window_ms: Tuple[float, float] = (10.0, 200.0),
     detection_multiplier: float = 3.0,
     burst_mad_multiplier: float = 3.0,
@@ -558,40 +712,52 @@ def analyze_stimulation_manifest(
             continue
 
         target_probabilities: List[PairConnectivity] = []
-        responder_fractions: List[float] = []
+        total_spike_counts: List[int] = []
+        channel_trace_cache = {
+            int(target_unit["channel"]): np.asarray(traces[int(target_unit["channel"])], dtype=np.float64)
+            for target_unit in putative_units
+        }
         for event_index in event_sample_indices:
-            responders = 0
+            total_spikes = 0
             for target_unit in putative_units:
                 target_channel = int(target_unit["channel"])
-                trace = np.asarray(traces[target_channel], dtype=np.float64)
+                trace = channel_trace_cache[target_channel]
                 threshold = float(threshold_by_channel[target_channel])
-                if _has_threshold_crossing(trace, int(event_index + multi_start), int(event_index + multi_end), threshold):
-                    responders += 1
-            responder_fractions.append(responders / max(1, len(putative_units)))
-        burst_threshold = _median_plus_mad_threshold(responder_fractions, burst_mad_multiplier)
-        burst_events = [value >= burst_threshold for value in responder_fractions]
+                total_spikes += _count_negative_spikes_in_window(
+                    trace,
+                    int(event_index + multi_start),
+                    int(event_index + multi_end),
+                    threshold,
+                )
+            total_spike_counts.append(total_spikes)
+        burst_threshold = _median_plus_mad_threshold(total_spike_counts, burst_mad_multiplier)
+        burst_events = [float(value) >= burst_threshold for value in total_spike_counts]
 
         for target_unit in putative_units:
             target_channel = int(target_unit["channel"])
-            trace = np.asarray(traces[target_channel], dtype=np.float64)
+            trace = channel_trace_cache[target_channel]
             threshold = float(threshold_by_channel[target_channel])
-            first_hits: List[bool] = []
-            multi_hits: List[bool] = []
-            for event_index in event_sample_indices:
-                first_hits.append(
-                    _has_threshold_crossing(trace, int(event_index + first_start), int(event_index + first_end), threshold)
-                )
-                multi_hits.append(
-                    _has_threshold_crossing(trace, int(event_index + multi_start), int(event_index + multi_end), threshold)
-                )
+            summary = _summarize_target_connectivity(
+                trace=trace,
+                event_sample_indices=event_sample_indices,
+                threshold=threshold,
+                first_start=first_start,
+                first_end=first_end,
+                multi_start=multi_start,
+                multi_end=multi_end,
+                burst_events=burst_events,
+            )
             target_probabilities.append(
                 PairConnectivity(
                     source_channel=int(probe_item["source_channel"]),
                     source_electrode=int(probe_item["source_electrode"]),
                     target_channel=target_channel,
                     target_electrode=int(target_unit["electrode"]),
-                    first_order_probability=_mean_probability(first_hits),
-                    multi_order_probability=_mean_probability(multi_hits),
+                    first_order_probability=float(summary["first_order_probability"]),
+                    multi_order_probability=float(summary["multi_order_probability"]),
+                    multi_order_spike_count_mean=float(summary["multi_order_spike_count_mean"]),
+                    event_count=int(summary["event_count"]),
+                    nonburst_event_count=int(summary["nonburst_event_count"]),
                 )
             )
 
@@ -606,7 +772,7 @@ def analyze_stimulation_manifest(
             )
         )
 
-    selection = _select_roles_from_probe_results(probe_summaries)
+    selection, selection_audit = _select_roles_from_probe_results(probe_summaries)
     selection.source_record_analysis = str(record_analysis_path)
     selection.source_stim_analysis = str(output_path)
 
@@ -619,6 +785,7 @@ def analyze_stimulation_manifest(
             "multi_order_window_ms": list(multi_order_window_ms),
             "burst_detection_method": "median_plus_3mad" if burst_mad_multiplier == 3.0 else "median_plus_k_mad",
             "burst_mad_multiplier": burst_mad_multiplier,
+            "multi_order_metric": "mean_spike_count_per_stim_nonburst",
             "probe_summaries": [
                 {
                     "source_channel": probe.source_channel,
@@ -630,8 +797,12 @@ def analyze_stimulation_manifest(
                 }
                 for probe in probe_summaries
             ],
+            "selection_audit": selection_audit,
         }
     }
     _json_dump(output_path, payload)
-    _json_dump(selection_output_path, {"selection_config": asdict(selection)})
+    _json_dump(
+        selection_output_path,
+        {"selection_config": asdict(selection), "selection_audit": selection_audit},
+    )
     return payload

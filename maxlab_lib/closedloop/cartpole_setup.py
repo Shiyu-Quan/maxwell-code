@@ -392,6 +392,7 @@ def export_runtime_config(
         "stim_phase_us": STIM_PARAMS["phase_us"],
         "stim_inter_pulse_interval_ms": STIM_PARAMS["inter_pulse_interval_ms"],
         "stim_training_frequency_hz": STIM_PARAMS["training_frequency_hz"],
+        "artifact_filter_mode": "iir",
         "encoding_left_sequence": "encode_left_pulse",
         "encoding_right_sequence": "encode_right_pulse",
         "training_pattern_names": list(training_pattern_names),

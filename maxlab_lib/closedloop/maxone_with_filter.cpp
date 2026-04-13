@@ -63,6 +63,7 @@ struct RunConfig {
     int stim_phase_us = 0;
     double stim_inter_pulse_interval_ms = 0.0;
     double stim_training_frequency_hz = 0.0;
+    std::string artifact_filter_mode = "iir";
     std::string log_path;
     std::uint32_t random_seed = 12345;
 };
@@ -386,8 +387,8 @@ void updateWindow(AppState& state, const RunConfig& config, SteadyClock::time_po
 
     const double left_count = sumCounts(state.spike_counts, config.decoding_left_channels);
     const double right_count = sumCounts(state.spike_counts, config.decoding_right_channels);
-    state.left_rate = config.ema_alpha * state.left_rate + (1.0 - config.ema_alpha) * left_count;
-    state.right_rate = config.ema_alpha * state.right_rate + (1.0 - config.ema_alpha) * right_count;
+    state.left_rate = (1.0 - config.ema_alpha) * state.left_rate + config.ema_alpha * left_count;
+    state.right_rate = (1.0 - config.ema_alpha) * state.right_rate + config.ema_alpha * right_count;
 
     const double force_newtons = clampUnitForce(config.force_scale_n, state.left_rate, state.right_rate);
     const bool terminal = state.task.step(force_newtons);
@@ -511,6 +512,9 @@ RunConfig loadConfig(const std::string& config_path) {
     config.stim_phase_us = static_cast<int>(parser.numberValueOr("stim_phase_us", 0.0));
     config.stim_inter_pulse_interval_ms = parser.numberValueOr("stim_inter_pulse_interval_ms", 0.0);
     config.stim_training_frequency_hz = parser.numberValueOr("stim_training_frequency_hz", 0.0);
+    if (parser.hasKey("artifact_filter_mode")) {
+        config.artifact_filter_mode = parser.stringValue("artifact_filter_mode");
+    }
     config.log_path = parser.stringValue("log_path");
     config.random_seed = static_cast<std::uint32_t>(parser.numberValue("random_seed"));
 
@@ -526,6 +530,12 @@ int runGameLoop(const RunConfig& config, GameWindow* window) {
     try {
         maxlab::checkVersions();
         waitForStartSignal(config.wait_for_sync);
+        if (config.artifact_filter_mode == "salpa") {
+            std::cout
+                << "[WARN] artifact_filter_mode=salpa requested; SALPA runtime path is not yet implemented, "
+                << "falling back to IIR stream filter."
+                << std::endl;
+        }
         maxlab::verifyStatus(maxlab::DataStreamerFiltered_open(maxlab::FilterType::IIR));
 
         AppState state(config, window);
@@ -587,6 +597,7 @@ int main(int argc, char* argv[]) {
               << " target_well=" << static_cast<int>(config.target_well)
               << " read_window_ms=" << config.read_window_ms
               << " training_window_ms=" << config.training_window_ms
+              << " artifact_filter_mode=" << config.artifact_filter_mode
               << " mode="
               << (config.mode == ClosedLoopMode::ContinuousAdaptive ? "continuous_adaptive" : "cycled_adaptive")
               << " duration_s=" << config.experiment_duration_s

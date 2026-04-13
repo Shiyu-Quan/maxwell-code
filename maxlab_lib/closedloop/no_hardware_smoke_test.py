@@ -17,6 +17,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+import numpy as np
+
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MAXLAB_LIB = REPO_ROOT / "maxlab_lib"
@@ -129,6 +131,62 @@ def run_preexperiment_contract_test() -> None:
     print("[OK] Preexperiment contract test passed")
 
 
+def run_star_alignment_contract_test() -> None:
+    closedloop_dir = REPO_ROOT / "maxlab_lib" / "closedloop"
+    if str(closedloop_dir) not in sys.path:
+        sys.path.insert(0, str(closedloop_dir))
+
+    import cartpole_selection as selection  # pylint: disable=import-outside-toplevel
+
+    # P0 contract: first-order window defaults to 0-10ms.
+    selection_src = (closedloop_dir / "cartpole_selection.py").read_text(encoding="utf-8")
+    if "first_order_window_ms: Tuple[float, float] = (0.0, 10.0)" not in selection_src:
+        raise RuntimeError("Expected cartpole_selection first_order_window_ms default to be 0-10ms")
+
+    # P0 contract: training trigger should be strict mean5 < mean20.
+    training_src = (closedloop_dir / "training_controller.cpp").read_text(encoding="utf-8")
+    if "if (decision.mean_5 >= decision.mean_20)" not in training_src:
+        raise RuntimeError("Expected strict training trigger guard: mean_5 >= mean_20 returns no stimulation")
+
+    # P0 contract: EMA should follow rt = 0.2 * ct + 0.8 * rt-1 (with alpha=0.2).
+    loop_src = (closedloop_dir / "maxone_with_filter.cpp").read_text(encoding="utf-8")
+    if "(1.0 - config.ema_alpha) * state.left_rate + config.ema_alpha * left_count" not in loop_src:
+        raise RuntimeError("Expected EMA update formula aligned with STAR methods")
+
+    # P0 contract: C1/Cm summary and burst exclusion behavior.
+    trace = np.zeros(15000, dtype=np.float64)
+    threshold = -1.0
+    event_indices = np.asarray([100, 5200, 10300], dtype=np.int64)
+    # event 0: first hit + 2 multi spikes
+    trace[150] = -5.0
+    trace[420] = -5.0
+    trace[760] = -5.0
+    # event 1: burst trial candidate (should be excluded from Cm)
+    trace[5400] = -5.0
+    trace[5500] = -5.0
+    # event 2: first hit + no multi spike
+    trace[10315] = -5.0
+    burst_events = [False, True, False]
+    summary = selection._summarize_target_connectivity(  # pylint: disable=protected-access
+        trace=trace,
+        event_sample_indices=event_indices,
+        threshold=threshold,
+        first_start=0,
+        first_end=200,
+        multi_start=200,
+        multi_end=4000,
+        burst_events=burst_events,
+    )
+    if abs(float(summary["first_order_probability"]) - (2.0 / 3.0)) > 1e-6:
+        raise RuntimeError("Unexpected C1 probability in STAR alignment test")
+    if abs(float(summary["multi_order_spike_count_mean"]) - 1.0) > 1e-6:
+        raise RuntimeError("Unexpected Cm mean spike count (non-burst) in STAR alignment test")
+    if int(summary["nonburst_event_count"]) != 2:
+        raise RuntimeError("Expected exactly 2 non-burst events in STAR alignment test")
+
+    print("[OK] STAR alignment contract test passed")
+
+
 def run_minimal_config_test() -> None:
     with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
         config_path = Path(f.name)
@@ -179,6 +237,7 @@ def main() -> int:
     build_cpp_headless()
     run_sync_test()
     run_preexperiment_contract_test()
+    run_star_alignment_contract_test()
     run_selection_config_compat_test()
     run_minimal_config_test()
     print("=" * 70)

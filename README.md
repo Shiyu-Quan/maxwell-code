@@ -6,6 +6,7 @@
 1. Phase-1 全盘分批扫描（1024/批）生成 `activity_map`。
 2. Phase-2 锁定 `locked_1024` 做持续记录，并产出 `eta_ranked_units_top32`。
 3. Stimulate 默认优先使用 `eta_top32`。
+4. 连通性分析默认：`C1=0-10ms`，`Cm=10-200ms`（剔除 burst 试次后统计平均 spike 数）。
 
 ## 1) 环境与编译
 
