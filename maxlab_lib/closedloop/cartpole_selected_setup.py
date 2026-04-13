@@ -8,7 +8,7 @@ import os
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Sequence
 
 import maxlab as mx
 
@@ -25,13 +25,14 @@ from cartpole_setup import (
     initialize_system,
     prepare_encoding_sequences,
     prepare_training_sequences,
+    print_info,
     print_success,
     start_recording,
     stop_recording,
 )
 
 
-def load_selection_config(selection_config_path: Path) -> Dict[str, List[int]]:
+def load_selection_config(selection_config_path: Path) -> Dict[str, Any]:
     payload = json.loads(selection_config_path.read_text(encoding="utf-8"))
     selection = payload.get("selection_config", payload)
     required_keys = (
@@ -45,7 +46,15 @@ def load_selection_config(selection_config_path: Path) -> Dict[str, List[int]]:
         raise RuntimeError(
             f"Selection config {selection_config_path} is missing keys: {', '.join(missing)}"
         )
-    return {key: [int(value) for value in selection[key]] for key in required_keys}
+
+    parsed = {key: [int(value) for value in selection[key]] for key in required_keys}
+    if "recording_electrodes" in selection and list(selection["recording_electrodes"]):
+        parsed["recording_electrodes"] = [int(value) for value in selection["recording_electrodes"]]
+        parsed["recording_electrodes_source"] = "selection_config"
+    else:
+        parsed["recording_electrodes"] = [int(value) for value in RECORDING_ELECTRODES]
+        parsed["recording_electrodes_source"] = "default_fallback_pool"
+    return parsed
 
 
 def run_selected_cartpole_experiment(
@@ -65,6 +74,11 @@ def run_selected_cartpole_experiment(
     training_stim_electrodes = selection["training_stim_electrodes"]
     decoding_left_electrodes = selection["decoding_left_electrodes"]
     decoding_right_electrodes = selection["decoding_right_electrodes"]
+    recording_electrodes = selection["recording_electrodes"]
+    print_info(
+        "Using recording electrodes from "
+        f"{selection['recording_electrodes_source']}: count={len(recording_electrodes)}"
+    )
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     session_name = f"cartpole_{mode}_{timestamp}"
@@ -76,7 +90,7 @@ def run_selected_cartpole_experiment(
 
     stimulation_electrodes = list(encoding_stim_electrodes) + list(training_stim_electrodes)
     stimulation_candidates = build_stim_candidate_electrodes(stimulation_electrodes)
-    array = configure_array(RECORDING_ELECTRODES, stimulation_candidates)
+    array = configure_array(recording_electrodes, stimulation_candidates)
     electrode_to_unit, resolved_stim = connect_stim_units_to_stim_electrodes(
         stimulation_electrodes,
         array,

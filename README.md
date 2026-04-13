@@ -1,59 +1,26 @@
 # maxwell-code
 
-## Cartpole 闭环实验：完整执行流程（Record -> Stimulate -> Train）
+## Cartpole 闭环实验（STAR Methods 对齐版）
 
-本文档给出你当前仓库可直接执行的一整套流程，覆盖：
-- 环境准备
-- C++ 编译（GUI / 无 GUI）
-- 前置实验（record + stimulate + selection）
-- 使用 `selection_config` 启动闭环训练
-- 空芯片（无神经元）调试方案
-- 关键输出文件检查
+当前流程已统一为两阶段 `chip_scan`（不再使用 `fixed_pool`）：
+1. Phase-1 全盘分批扫描（1024/批）生成 `activity_map`。
+2. Phase-2 锁定 `locked_1024` 做持续记录，并产出 `eta_ranked_units_top32`。
+3. Stimulate 默认优先使用 `eta_top32`。
 
----
-
-## 0) 进入仓库
+## 1) 环境与编译
 
 ```bash
 cd /home/descfly/maxwell-code
+python3 -m pip install --user --break-system-packages ./maxlab-1.1.0-py3-none-any.whl numpy h5py
 ```
 
----
-
-## 1) 环境准备
-
-安装 Python 依赖：
-
-```bash
-python3 -m pip install --user --break-system-packages \
-  ./maxlab-1.1.0-py3-none-any.whl numpy h5py
-```
-
-如果你使用本地依赖目录 `.pydeps`，运行前设置：
-
-```bash
-export PYTHONPATH=/home/descfly/maxwell-code/.pydeps:$PYTHONPATH
-```
-
-可选自检：
-
-```bash
-python3 maxlab_lib/closedloop/test_sync.py
-```
-
----
-
-## 2) 编译 C++ 程序
-
-### 2.1 无 GUI 版本（推荐先打通）
-
+Headless 编译：
 ```bash
 cd /home/descfly/maxwell-code/maxlab_lib
 make USE_QT=0 maxone_with_filter
 ```
 
-### 2.2 GUI 版本（需要 Qt6）
-
+GUI 编译（需要 Qt6）：
 ```bash
 cd /home/descfly/maxwell-code/maxlab_lib
 sudo apt-get update
@@ -61,55 +28,27 @@ sudo apt-get install -y qt6-base-dev
 make maxone_with_filter
 ```
 
-如果出现 `cannot find -lQt6Core/-lQt6Widgets/-lQt6Gui`，说明 Qt6 开发库未安装完整，先执行上面的 `apt install` 再编译。
+## 2) 前置实验（Record + Stimulate + Selection）
 
----
-
-## 3) 前置实验（record + stimulate + selection）
-
-### 3.1 分步执行
-
-Record（记录自发活动）：
-
+推荐一条命令跑完整前置流程：
 ```bash
 cd /home/descfly/maxwell-code
-python3 maxlab_lib/closedloop/cartpole_preexperiment.py record \
-  --duration-s 300 \
-  --wells 0
-```
-
-Stimulate（使用 record 结果做刺激探测；把 `RECORD_ANALYSIS_JSON` 替换成上一步生成的 `*_putative_units.json`）：
-
-```bash
-python3 maxlab_lib/closedloop/cartpole_preexperiment.py stimulate \
-  --record-analysis RECORD_ANALYSIS_JSON \
-  --wells 0 \
-  --repetitions 50 \
-  --stim-frequency-hz 2 \
-  --stim-neighbor-radius 2 \
-  --max-probe-units 16
-```
-
-### 3.2 一条命令跑完整前置流程
-
-```bash
 python3 maxlab_lib/closedloop/cartpole_preexperiment.py full \
   --duration-s 300 \
   --wells 0 \
+  --scan-budget balanced \
   --repetitions 50 \
   --stim-frequency-hz 2 \
-  --stim-neighbor-radius 2 \
-  --max-probe-units 16
+  --stim-neighbor-radius 2
 ```
 
----
+说明：
+- `--scan-budget`: `speed`(8s/批), `balanced`(15s/批), `coverage`(30s/批)
+- `stimulate` 默认 `max_probe_units=32`（来源优先 `eta_top32`）
 
-## 4) 启动闭环 Cartpole 训练（使用 selection_config）
+## 3) 启动闭环训练（使用 selection_config）
 
-把 `SELECTION_JSON` 替换成前面生成的 `cartpole_selection_<timestamp>.json`。
-
-### 4.1 标准运行（无 GUI）
-
+把 `SELECTION_JSON` 替换成上一步生成的 `cartpole_selection_<timestamp>.json`：
 ```bash
 cd /home/descfly/maxwell-code
 python3 maxlab_lib/closedloop/cartpole_selected_setup.py \
@@ -119,8 +58,7 @@ python3 maxlab_lib/closedloop/cartpole_selected_setup.py \
   --wells 0
 ```
 
-持续训练模式：
-
+持续训练：
 ```bash
 python3 maxlab_lib/closedloop/cartpole_selected_setup.py \
   --selection-config SELECTION_JSON \
@@ -129,10 +67,7 @@ python3 maxlab_lib/closedloop/cartpole_selected_setup.py \
   --wells 0
 ```
 
-### 4.2 启动 GUI（你当前环境推荐命令）
-
-如果在 Snap/IDE 环境下直接启动 GUI 报系统库冲突，可用干净环境启动：
-
+GUI（Snap/IDE 冲突时使用干净环境）：
 ```bash
 cd /home/descfly/maxwell-code
 env -i HOME=$HOME PATH=/usr/bin:/bin DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY LANG=C.UTF-8 \
@@ -145,17 +80,14 @@ env -i HOME=$HOME PATH=/usr/bin:/bin DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY LAN
   --show-gui
 ```
 
----
-
-## 5) 空芯片（无神经元）调试流程
-
-当芯片暂时没有接入神经元、`putative_units=0` 时，可用 mock 参数先验证闭环软件链路：
+## 4) 无神经元调试
 
 ```bash
 cd /home/descfly/maxwell-code
 python3 maxlab_lib/closedloop/cartpole_preexperiment.py full \
   --duration-s 20 \
   --wells 0 \
+  --scan-budget speed \
   --repetitions 5 \
   --stim-frequency-hz 2 \
   --stim-neighbor-radius 2 \
@@ -164,54 +96,23 @@ python3 maxlab_lib/closedloop/cartpole_preexperiment.py full \
   --mock-putative-count 8
 ```
 
-然后用生成的 `selection_config` 做短时训练验证：
+## 5) 结果文件
 
-```bash
-python3 maxlab_lib/closedloop/cartpole_selected_setup.py \
-  --selection-config SELECTION_JSON \
-  --duration 1 \
-  --mode continuous_adaptive \
-  --wells 0 \
-  --show-gui
-```
-
----
-
-## 6) 无硬件 smoke test（可选）
-
-```bash
-cd /home/descfly/maxwell-code
-python3 maxlab_lib/closedloop/no_hardware_smoke_test.py
-```
-
----
-
-## 7) 输出文件与结果检查
-
-默认输出目录：
-
+默认目录：
 ```bash
 ~/cartpole_experiments
 ```
 
-常见产物：
-- `cartpole_record_<timestamp>.raw.h5`
-- `cartpole_record_<timestamp>_meta.json`
-- `cartpole_record_<timestamp>_putative_units.json`
+关键产物：
+- `cartpole_record_scan_<timestamp>_manifest.json`
+- `cartpole_record_scan_<timestamp>_activity_map.json`
+- `cartpole_record_<timestamp>_putative_units.json`（含 `locked_recording_electrodes`、`eta_ranked_units_top32`）
 - `cartpole_stimulate_<timestamp>_manifest.json`
-- `cartpole_stimulate_<timestamp>_analysis.json`
 - `cartpole_selection_<timestamp>.json`
-- `cartpole_<mode>_<timestamp>_config.json`
 - `cartpole_<mode>_<timestamp>_episodes.jsonl`
 
-快速查看最近结果：
-
+快速检查：
 ```bash
-ls -lt ~/cartpole_experiments | head -n 30
-```
-
-查看训练回合日志（每行一个 episode）：
-
-```bash
+ls -lt ~/cartpole_experiments | head -n 40
 tail -n 20 ~/cartpole_experiments/cartpole_*_episodes.jsonl
 ```

@@ -32,6 +32,12 @@ class PutativeUnit:
     rms: float
     threshold: float
     median_negative_peak: float
+    peak_to_peak_amplitude: float
+    footprint_electrodes: List[int]
+    footprint_waveform_summary: Dict[str, float]
+    log_rate_norm: float
+    amp_norm: float
+    eta_score: float
     score: float
 
 
@@ -135,18 +141,6 @@ def _detect_negative_spikes(
     return np.asarray(selected_indices, dtype=np.int64), np.asarray(selected_peaks, dtype=np.float64)
 
 
-def _waveform_correlation(first: np.ndarray, second: np.ndarray) -> float:
-    if first.size == 0 or second.size == 0:
-        return 0.0
-    first_centered = first - np.mean(first)
-    second_centered = second - np.mean(second)
-    first_norm = np.linalg.norm(first_centered)
-    second_norm = np.linalg.norm(second_centered)
-    if first_norm == 0.0 or second_norm == 0.0:
-        return 0.0
-    return float(np.dot(first_centered, second_centered) / (first_norm * second_norm))
-
-
 def _build_average_waveform(
     trace: np.ndarray,
     spike_indices: np.ndarray,
@@ -180,6 +174,62 @@ def _spike_time_overlap(first: np.ndarray, second: np.ndarray, tolerance_samples
     return float(matched / denom) if denom else 0.0
 
 
+def _minmax_normalize(values: Sequence[float]) -> List[float]:
+    if not values:
+        return []
+    min_value = float(min(values))
+    max_value = float(max(values))
+    if max_value <= min_value:
+        return [0.0 for _ in values]
+    scale = max_value - min_value
+    return [float((value - min_value) / scale) for value in values]
+
+
+def _estimate_footprint(
+    center_channel: int,
+    channel_to_electrode: Mapping[int, int],
+    p2p_by_channel: Mapping[int, float],
+    waveforms: Mapping[int, np.ndarray],
+    max_footprint_electrodes: int = 12,
+) -> Tuple[List[int], Dict[str, float]]:
+    center_waveform = np.asarray(waveforms.get(center_channel, np.asarray([])), dtype=np.float64)
+    center_p2p = float(p2p_by_channel.get(center_channel, 0.0))
+    center_electrode = int(channel_to_electrode.get(center_channel, -1))
+    threshold = max(1e-9, 0.25 * center_p2p)
+    candidates: List[Tuple[float, int]] = []
+    for channel, p2p in p2p_by_channel.items():
+        electrode = int(channel_to_electrode.get(int(channel), -1))
+        if electrode < 0:
+            continue
+        if float(p2p) < threshold:
+            continue
+        candidates.append((float(p2p), int(channel)))
+    candidates.sort(key=lambda item: item[0], reverse=True)
+
+    selected_electrodes: List[int] = []
+    seen = set()
+    if center_electrode >= 0:
+        selected_electrodes.append(center_electrode)
+        seen.add(center_electrode)
+    for _, channel in candidates:
+        electrode = int(channel_to_electrode.get(channel, -1))
+        if electrode < 0 or electrode in seen:
+            continue
+        selected_electrodes.append(electrode)
+        seen.add(electrode)
+        if len(selected_electrodes) >= max_footprint_electrodes:
+            break
+
+    summary = {
+        "center_min": float(np.min(center_waveform)) if center_waveform.size else 0.0,
+        "center_max": float(np.max(center_waveform)) if center_waveform.size else 0.0,
+        "center_p2p": center_p2p,
+        "sample_count": float(center_waveform.size),
+        "footprint_electrode_count": float(len(selected_electrodes)),
+    }
+    return selected_electrodes, summary
+
+
 def analyze_spontaneous_recording(
     recording_path: Path,
     metadata_path: Path,
@@ -204,6 +254,7 @@ def analyze_spontaneous_recording(
     candidate_rows: List[Dict[str, Any]] = []
     waveforms: Dict[int, np.ndarray] = {}
     spike_indices_by_channel: Dict[int, np.ndarray] = {}
+    p2p_by_channel: Dict[int, float] = {}
 
     for channel in range(traces.shape[0]):
         trace = np.asarray(traces[channel], dtype=np.float64)
@@ -213,9 +264,12 @@ def analyze_spontaneous_recording(
         spike_count = int(spike_indices.size)
         median_negative_peak = float(np.median(np.abs(peaks))) if peaks.size else 0.0
         firing_rate_hz = float(spike_count / duration_s) if duration_s > 0 else 0.0
-        score = float(spike_count * median_negative_peak)
+        waveform = _build_average_waveform(trace, spike_indices)
+        peak_to_peak_amplitude = float(np.ptp(waveform)) if waveform.size else 0.0
+        score = float(spike_count * max(peak_to_peak_amplitude, median_negative_peak))
         spike_indices_by_channel[channel] = spike_indices
-        waveforms[channel] = _build_average_waveform(trace, spike_indices)
+        waveforms[channel] = waveform
+        p2p_by_channel[channel] = peak_to_peak_amplitude
         candidate_rows.append(
             {
                 "channel": channel,
@@ -225,34 +279,56 @@ def analyze_spontaneous_recording(
                 "rms": rms,
                 "threshold": threshold,
                 "median_negative_peak": median_negative_peak,
+                "peak_to_peak_amplitude": peak_to_peak_amplitude,
                 "score": score,
             }
         )
 
     candidate_rows.sort(key=lambda row: row["score"], reverse=True)
-    selected_channels: List[int] = []
-    putative_units: List[PutativeUnit] = []
+    selected_rows: List[Dict[str, Any]] = []
     for row in candidate_rows:
-        if len(putative_units) >= top_k:
+        if len(selected_rows) >= top_k:
             break
         channel = int(row["channel"])
         if row["spike_count"] < min_spike_count or row["electrode"] < 0:
             continue
 
-        duplicate = False
-        for selected_channel in selected_channels:
-            waveform_corr = _waveform_correlation(waveforms[channel], waveforms[selected_channel])
+        duplicate_index: Optional[int] = None
+        for index, selected_row in enumerate(selected_rows):
+            selected_channel = int(selected_row["channel"])
             overlap = _spike_time_overlap(
                 spike_indices_by_channel[channel],
                 spike_indices_by_channel[selected_channel],
             )
-            if waveform_corr >= 0.98 and overlap >= 0.5:
-                duplicate = True
+            if overlap > 0.5:
+                duplicate_index = index
                 break
-        if duplicate:
+        if duplicate_index is not None:
+            selected_p2p = float(selected_rows[duplicate_index].get("peak_to_peak_amplitude", 0.0))
+            current_p2p = float(row.get("peak_to_peak_amplitude", 0.0))
+            if current_p2p > selected_p2p:
+                selected_rows[duplicate_index] = row
             continue
 
-        selected_channels.append(channel)
+        selected_rows.append(row)
+
+    selected_rows.sort(key=lambda row: float(row["score"]), reverse=True)
+    log_rates = [float(np.log1p(float(row["firing_rate_hz"]))) for row in selected_rows]
+    amp_values = [float(row.get("peak_to_peak_amplitude", 0.0)) for row in selected_rows]
+    log_rate_norm = _minmax_normalize(log_rates)
+    amp_norm = _minmax_normalize(amp_values)
+
+    putative_units: List[PutativeUnit] = []
+    for row, r_hat, amp_hat in zip(selected_rows, log_rate_norm, amp_norm):
+        channel = int(row["channel"])
+        footprint_electrodes, footprint_summary = _estimate_footprint(
+            center_channel=channel,
+            channel_to_electrode=channel_to_electrode,
+            p2p_by_channel=p2p_by_channel,
+            waveforms=waveforms,
+        )
+        mu_amp = float(amp_hat)
+        eta_score = float((1.0 + float(r_hat)) * (1.0 + 0.1 * abs(mu_amp)))
         putative_units.append(
             PutativeUnit(
                 channel=channel,
@@ -262,9 +338,18 @@ def analyze_spontaneous_recording(
                 rms=float(row["rms"]),
                 threshold=float(row["threshold"]),
                 median_negative_peak=float(row["median_negative_peak"]),
+                peak_to_peak_amplitude=float(row.get("peak_to_peak_amplitude", 0.0)),
+                footprint_electrodes=[int(item) for item in footprint_electrodes],
+                footprint_waveform_summary=footprint_summary,
+                log_rate_norm=float(r_hat),
+                amp_norm=float(amp_hat),
+                eta_score=eta_score,
                 score=float(row["score"]),
             )
         )
+
+    eta_ranked_units = sorted([asdict(unit) for unit in putative_units], key=lambda item: item["eta_score"], reverse=True)
+    eta_ranked_units_top32 = eta_ranked_units[:32]
 
     result = RecordAnalysisResult(
         recording_path=str(recording_path),
@@ -287,6 +372,8 @@ def analyze_spontaneous_recording(
             "refractory_samples": result.refractory_samples,
             "min_spike_count": result.min_spike_count,
             "putative_units": [asdict(unit) for unit in result.putative_units],
+            "eta_ranked_units": eta_ranked_units,
+            "eta_ranked_units_top32": eta_ranked_units_top32,
             "channel_metrics": result.channel_metrics,
         }
     }

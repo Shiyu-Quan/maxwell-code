@@ -7,7 +7,7 @@ import json
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Sequence, Tuple
 
 import maxlab as mx
 
@@ -15,7 +15,6 @@ from cartpole_selection import analyze_spontaneous_recording, analyze_stimulatio
 from cartpole_setup import (
     RECORDING_DIR,
     RECORDING_ELECTRODES,
-    STIM_PARAMS,
     append_pulse_for_unit,
     build_stim_candidate_electrodes,
     configure_and_powerup_stim_units,
@@ -39,7 +38,14 @@ MULTI_ORDER_WINDOW_MS = (10.0, 200.0)
 BURST_MAD_MULTIPLIER = 3.0
 STIM_REPETITIONS = 50
 STIM_FREQUENCY_HZ = 2.0
+DEFAULT_MAX_PROBE_UNITS = 32
 MIN_PUTATIVE_UNITS = 8
+MAX_RECORDING_CHANNELS = 1024
+SCAN_BATCH_DURATION_S = {
+    "speed": 8.0,
+    "balanced": 15.0,
+    "coverage": 30.0,
+}
 
 
 def _timestamp() -> str:
@@ -52,6 +58,93 @@ def _recording_path(recording_name: str) -> Path:
 
 def _json_dump(path: Path, payload: Dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def _chunked(items: Sequence[int], size: int) -> Iterable[List[int]]:
+    for start in range(0, len(items), size):
+        yield list(items[start : start + size])
+
+
+def _unique_electrodes(items: Sequence[int]) -> List[int]:
+    seen = set()
+    output: List[int] = []
+    for item in items:
+        value = int(item)
+        if value in seen:
+            continue
+        seen.add(value)
+        output.append(value)
+    return output
+
+
+def _discover_scan_candidates() -> List[int]:
+    try:
+        candidates = list(mx.electrode_rectangle_indices(0, 0, 219, 119))
+        candidates = _unique_electrodes(candidates)
+        if candidates:
+            return candidates
+    except Exception as exc:
+        print_info(f"Failed to query rectangle electrode indices, fallback to range(26400): {exc}")
+    return list(range(26400))
+
+
+def _activity_score(row: Dict[str, Any]) -> float:
+    firing_rate = float(row.get("firing_rate_hz", 0.0) or 0.0)
+    p2p = float(row.get("peak_to_peak_amplitude", 0.0) or 0.0)
+    median_peak = float(row.get("median_negative_peak", 0.0) or 0.0)
+    amplitude = max(p2p, median_peak)
+    return float((1.0 + firing_rate) * (1.0 + amplitude))
+
+
+def _select_locked_recording_electrodes(
+    activity_map_rows: Sequence[Dict[str, Any]],
+    candidate_electrodes: Sequence[int],
+) -> List[int]:
+    ranked = sorted(activity_map_rows, key=_activity_score, reverse=True)
+    seed_count = min(256, len(ranked))
+    seeds = [int(item["electrode"]) for item in ranked[:seed_count] if int(item.get("electrode", -1)) >= 0]
+    locked: List[int] = []
+    used = set()
+
+    for electrode in seeds:
+        if len(locked) >= MAX_RECORDING_CHANNELS:
+            break
+        if electrode in used:
+            continue
+        locked.append(electrode)
+        used.add(electrode)
+
+    for electrode in seeds:
+        if len(locked) >= MAX_RECORDING_CHANNELS:
+            break
+        for neighbor in mx.electrode_neighbors(electrode, 1):
+            neighbor = int(neighbor)
+            if neighbor in used:
+                continue
+            locked.append(neighbor)
+            used.add(neighbor)
+            if len(locked) >= MAX_RECORDING_CHANNELS:
+                break
+
+    for row in ranked:
+        if len(locked) >= MAX_RECORDING_CHANNELS:
+            break
+        electrode = int(row.get("electrode", -1))
+        if electrode < 0 or electrode in used:
+            continue
+        locked.append(electrode)
+        used.add(electrode)
+
+    for electrode in candidate_electrodes:
+        if len(locked) >= MAX_RECORDING_CHANNELS:
+            break
+        electrode = int(electrode)
+        if electrode in used:
+            continue
+        locked.append(electrode)
+        used.add(electrode)
+
+    return locked
 
 
 def _export_recording_metadata(
@@ -78,27 +171,16 @@ def _export_recording_metadata(
     return payload
 
 
-def _power_down_all_stim_units() -> None:
-    for stimulation_unit in range(32):
-        mx.send(mx.StimulationUnit(stimulation_unit).power_up(False).connect(False))
-
-
-def run_record_stage(
-    duration_s: float,
-    wells: Sequence[int],
+def _run_recording_batch(
+    recording_name: str,
     recording_electrodes: Sequence[int],
-    analyze: bool,
-) -> Dict[str, Path]:
-    timestamp = _timestamp()
-    recording_name = f"cartpole_record_{timestamp}"
+    wells: Sequence[int],
+    duration_s: float,
+    target_well: int,
+) -> Tuple[Path, Path]:
     recording_path = _recording_path(recording_name)
     metadata_path = RECORDING_DIR / f"{recording_name}_meta.json"
-    analysis_path = RECORDING_DIR / f"{recording_name}_putative_units.json"
-
-    initialize_system()
-    mx.activate(list(wells))
-
-    print_step("Routing recording electrodes for spontaneous Record stage")
+    print_step(f"Routing recording electrodes ({len(recording_electrodes)} electrodes)")
     array = configure_array(recording_electrodes, [])
     array.download(list(wells))
     time.sleep(mx.Timing.waitAfterDownload)
@@ -110,41 +192,189 @@ def run_record_stage(
         metadata_path=metadata_path,
         array=array,
         recording_electrodes=recording_electrodes,
-        target_well=int(wells[0]),
+        target_well=target_well,
         duration_s=duration_s,
     )
     saving = start_recording(recording_name, list(wells))
     try:
-        print_info(f"Recording spontaneous activity for {duration_s:.1f} seconds")
+        print_info(f"Recording for {duration_s:.1f} seconds")
         time.sleep(duration_s)
     finally:
         stop_recording(saving)
+    return recording_path, metadata_path
 
-    print_success(f"Record stage raw file written to {recording_path}")
-    print_success(f"Record stage metadata written to {metadata_path}")
+
+def _dedupe_activity_map_rows(rows: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    best_by_electrode: Dict[int, Dict[str, Any]] = {}
+    for row in rows:
+        electrode = int(row.get("electrode", -1))
+        if electrode < 0:
+            continue
+        existing = best_by_electrode.get(electrode)
+        if existing is None or _activity_score(row) > _activity_score(existing):
+            best_by_electrode[electrode] = dict(row)
+    deduped = list(best_by_electrode.values())
+    deduped.sort(key=_activity_score, reverse=True)
+    return deduped
+
+
+def run_record_stage(
+    duration_s: float,
+    wells: Sequence[int],
+    analyze: bool,
+    scan_budget: str = "balanced",
+) -> Dict[str, Any]:
+    if scan_budget not in SCAN_BATCH_DURATION_S:
+        raise RuntimeError(f"Unsupported scan budget: {scan_budget}")
+
+    timestamp = _timestamp()
+    target_well = int(wells[0])
+    scan_manifest_path = RECORDING_DIR / f"cartpole_record_scan_{timestamp}_manifest.json"
+    activity_map_path = RECORDING_DIR / f"cartpole_record_scan_{timestamp}_activity_map.json"
+    analysis_path = RECORDING_DIR / f"cartpole_record_{timestamp}_putative_units.json"
+    recording_name = f"cartpole_record_{timestamp}"
+    recording_path = _recording_path(recording_name)
+    metadata_path = RECORDING_DIR / f"{recording_name}_meta.json"
+
+    candidate_electrodes = _discover_scan_candidates()
+    batches = list(_chunked(candidate_electrodes, MAX_RECORDING_CHANNELS))
+    per_batch_duration_s = float(SCAN_BATCH_DURATION_S[scan_budget])
+    print_info(
+        "Two-phase chip scan enabled: "
+        f"candidates={len(candidate_electrodes)}, batches={len(batches)}, "
+        f"batch_size<={MAX_RECORDING_CHANNELS}, per_batch_duration_s={per_batch_duration_s:.1f}"
+    )
+
+    initialize_system()
+    mx.activate(list(wells))
+
+    batch_entries: List[Dict[str, Any]] = []
+    activity_map_rows: List[Dict[str, Any]] = []
+
+    for batch_index, batch_electrodes in enumerate(batches, start=1):
+        batch_recording_name = f"cartpole_record_scan_{timestamp}_b{batch_index:03d}"
+        print_step(f"Phase-1 scan batch {batch_index}/{len(batches)}")
+        batch_recording_path, batch_metadata_path = _run_recording_batch(
+            recording_name=batch_recording_name,
+            recording_electrodes=batch_electrodes,
+            wells=wells,
+            duration_s=per_batch_duration_s,
+            target_well=target_well,
+        )
+        batch_entry: Dict[str, Any] = {
+            "batch_index": batch_index,
+            "recording_path": str(batch_recording_path),
+            "metadata_path": str(batch_metadata_path),
+            "electrode_count": len(batch_electrodes),
+        }
+        if analyze:
+            batch_analysis_path = RECORDING_DIR / f"{batch_recording_name}_putative_units.json"
+            batch_record_analysis = analyze_spontaneous_recording(
+                recording_path=batch_recording_path,
+                metadata_path=batch_metadata_path,
+                output_path=batch_analysis_path,
+                threshold_multiplier=SPONTANEOUS_THRESHOLD_MULTIPLIER,
+                refractory_samples=RECORD_REFRACTORY_SAMPLES,
+                min_spike_count=20,
+                top_k=MAX_RECORDING_CHANNELS,
+            )["record_analysis"]
+            batch_entry["analysis_path"] = str(batch_analysis_path)
+            batch_entry["putative_unit_count"] = len(batch_record_analysis.get("putative_units", []))
+            for row in batch_record_analysis.get("channel_metrics", []):
+                electrode = int(row.get("electrode", -1))
+                if electrode < 0:
+                    continue
+                enriched = dict(row)
+                enriched["batch_index"] = batch_index
+                activity_map_rows.append(enriched)
+        batch_entries.append(batch_entry)
+
+    deduped_activity_rows = _dedupe_activity_map_rows(activity_map_rows)
+    if not deduped_activity_rows:
+        deduped_activity_rows = [{"electrode": int(e), "firing_rate_hz": 0.0, "peak_to_peak_amplitude": 0.0} for e in candidate_electrodes[:MAX_RECORDING_CHANNELS]]
+    locked_1024 = _select_locked_recording_electrodes(deduped_activity_rows, candidate_electrodes)
+
+    activity_payload = {
+        "scan_budget": scan_budget,
+        "candidate_electrode_count": len(candidate_electrodes),
+        "batch_count": len(batches),
+        "activity_map": deduped_activity_rows,
+        "locked_recording_electrodes": locked_1024,
+    }
+    _json_dump(activity_map_path, activity_payload)
+    _json_dump(
+        scan_manifest_path,
+        {
+            "record_strategy": "chip_scan",
+            "scan_budget": scan_budget,
+            "scan_batch_duration_s": per_batch_duration_s,
+            "batch_size_limit": MAX_RECORDING_CHANNELS,
+            "candidate_electrode_count": len(candidate_electrodes),
+            "batch_count": len(batches),
+            "activity_map_path": str(activity_map_path),
+            "locked_recording_electrodes": locked_1024,
+            "batches": batch_entries,
+        },
+    )
+    print_success(f"Phase-1 scan manifest written to {scan_manifest_path}")
+    print_success(f"Activity map written to {activity_map_path}")
+
+    print_step("Phase-2 locked recording on selected 1024 electrodes")
+    phase2_recording_path, phase2_metadata_path = _run_recording_batch(
+        recording_name=recording_name,
+        recording_electrodes=locked_1024,
+        wells=wells,
+        duration_s=duration_s,
+        target_well=target_well,
+    )
+    print_success(f"Record stage raw file written to {phase2_recording_path}")
+    print_success(f"Record stage metadata written to {phase2_metadata_path}")
 
     if analyze:
-        analyze_spontaneous_recording(
-            recording_path=recording_path,
-            metadata_path=metadata_path,
+        record_analysis = analyze_spontaneous_recording(
+            recording_path=phase2_recording_path,
+            metadata_path=phase2_metadata_path,
             output_path=analysis_path,
             threshold_multiplier=SPONTANEOUS_THRESHOLD_MULTIPLIER,
             refractory_samples=RECORD_REFRACTORY_SAMPLES,
             min_spike_count=20,
-            top_k=64,
-        )
-        print_success(f"Putative units written to {analysis_path}")
+            top_k=MAX_RECORDING_CHANNELS,
+        )["record_analysis"]
+        record_analysis["downstream_recording_electrodes"] = [int(item) for item in locked_1024]
+        record_analysis["locked_recording_electrodes"] = [int(item) for item in locked_1024]
+        record_analysis["activity_map_path"] = str(activity_map_path)
+        record_analysis["scan_manifest_path"] = str(scan_manifest_path)
+        record_analysis["scan_metadata"] = {
+            "strategy": "chip_scan",
+            "budget": scan_budget,
+            "per_batch_duration_s": per_batch_duration_s,
+            "candidate_electrode_count": len(candidate_electrodes),
+            "batch_size_limit": MAX_RECORDING_CHANNELS,
+            "batch_count": len(batches),
+        }
+        _json_dump(analysis_path, {"record_analysis": record_analysis})
+        print_success(f"Record analysis written to {analysis_path}")
 
     return {
-        "recording_path": recording_path,
-        "metadata_path": metadata_path,
+        "recording_path": phase2_recording_path,
+        "metadata_path": phase2_metadata_path,
         "analysis_path": analysis_path,
+        "recording_electrodes": locked_1024,
+        "activity_map_path": activity_map_path,
+        "scan_manifest_path": scan_manifest_path,
     }
 
 
+def _load_record_analysis_payload(record_analysis_path: Path) -> Dict[str, Any]:
+    payload = json.loads(record_analysis_path.read_text(encoding="utf-8"))
+    if "record_analysis" not in payload:
+        raise RuntimeError(f"Record analysis file is missing 'record_analysis': {record_analysis_path}")
+    return payload["record_analysis"]
+
+
 def _load_putative_units(record_analysis_path: Path) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
-    payload = json.loads(record_analysis_path.read_text(encoding="utf-8"))["record_analysis"]
-    units = list(payload["putative_units"])
+    payload = _load_record_analysis_payload(record_analysis_path)
+    units = list(payload.get("putative_units", []))
     if len(units) < MIN_PUTATIVE_UNITS:
         raise RuntimeError(
             f"Record analysis only found {len(units)} putative units; need at least {MIN_PUTATIVE_UNITS}"
@@ -170,6 +400,11 @@ def _synthesize_putative_units(record_analysis: Dict[str, Any], count: int) -> L
                 "median_negative_peak": float(
                     row.get("median_negative_peak", 0.0) if row.get("median_negative_peak") is not None else 0.0
                 ),
+                "peak_to_peak_amplitude": float(
+                    row.get("peak_to_peak_amplitude", 0.0)
+                    if row.get("peak_to_peak_amplitude") is not None
+                    else 0.0
+                ),
                 "score": float(row.get("score", 0.0) if row.get("score") is not None else 0.0),
             }
         )
@@ -178,16 +413,32 @@ def _synthesize_putative_units(record_analysis: Dict[str, Any], count: int) -> L
     return synthesized
 
 
-def _unique_electrodes(items: Sequence[int]) -> List[int]:
-    seen = set()
-    output: List[int] = []
-    for item in items:
-        value = int(item)
-        if value in seen:
-            continue
-        seen.add(value)
-        output.append(value)
-    return output
+def _resolve_recording_pool_for_stimulate(record_analysis_path: Path) -> List[int]:
+    try:
+        record_analysis = _load_record_analysis_payload(record_analysis_path)
+    except Exception as exc:
+        print_info(f"Falling back to default recording pool ({exc})")
+        return list(RECORDING_ELECTRODES)
+
+    for key in ("downstream_recording_electrodes", "locked_recording_electrodes", "recording_electrodes"):
+        pool = record_analysis.get(key, [])
+        if isinstance(pool, list) and pool:
+            return _unique_electrodes([int(item) for item in pool])[:MAX_RECORDING_CHANNELS]
+
+    return list(RECORDING_ELECTRODES)
+
+
+def _inject_selection_metadata(
+    selection_path: Path,
+    recording_electrodes: Sequence[int],
+    eta_ranked_units_top32: Sequence[Dict[str, Any]],
+) -> None:
+    payload = json.loads(selection_path.read_text(encoding="utf-8"))
+    if "selection_config" not in payload or not isinstance(payload["selection_config"], dict):
+        payload = {"selection_config": payload}
+    payload["selection_config"]["recording_electrodes"] = [int(item) for item in recording_electrodes]
+    payload["selection_config"]["eta_ranked_units_top32"] = list(eta_ranked_units_top32)
+    _json_dump(selection_path, payload)
 
 
 def _write_debug_selection_from_manifest(
@@ -196,6 +447,8 @@ def _write_debug_selection_from_manifest(
     selection_path: Path,
     analysis_path: Path,
     reason: str,
+    recording_electrodes: Sequence[int],
+    eta_ranked_units_top32: Sequence[Dict[str, Any]],
 ) -> None:
     source_electrodes = _unique_electrodes(
         int(item["source_electrode"]) for item in manifest.get("stimulus_recordings", [])
@@ -230,6 +483,8 @@ def _write_debug_selection_from_manifest(
             "decoding_left_electrodes": [int(decoding[0])],
             "decoding_right_electrodes": [int(decoding[1])],
             "training_stim_electrodes": training,
+            "recording_electrodes": [int(item) for item in recording_electrodes],
+            "eta_ranked_units_top32": list(eta_ranked_units_top32),
             "source_record_analysis": str(manifest.get("record_analysis_path", "")),
             "source_stim_analysis": str(analysis_path),
             "debug_mode": True,
@@ -247,6 +502,11 @@ def _write_debug_selection_from_manifest(
     }
     _json_dump(analysis_path, analysis_payload)
     _json_dump(selection_path, selection_payload)
+
+
+def _power_down_all_stim_units() -> None:
+    for stimulation_unit in range(32):
+        mx.send(mx.StimulationUnit(stimulation_unit).power_up(False).connect(False))
 
 
 def _prepare_single_probe_sequence(stim_unit: int) -> mx.Sequence:
@@ -322,12 +582,16 @@ def run_stimulate_stage(
     allow_empty_putative: bool = False,
     mock_putative_count: int = MIN_PUTATIVE_UNITS,
 ) -> Dict[str, Path]:
+    canonical_recording_electrodes = _unique_electrodes(list(recording_electrodes))[:MAX_RECORDING_CHANNELS]
+    if not canonical_recording_electrodes:
+        canonical_recording_electrodes = list(RECORDING_ELECTRODES)
+
     try:
         record_analysis, putative_units = _load_putative_units(record_analysis_path)
     except RuntimeError as exc:
         if not allow_empty_putative:
             raise
-        payload = json.loads(record_analysis_path.read_text(encoding="utf-8"))["record_analysis"]
+        payload = _load_record_analysis_payload(record_analysis_path)
         putative_units = _synthesize_putative_units(payload, max(mock_putative_count, MIN_PUTATIVE_UNITS))
         if len(putative_units) < MIN_PUTATIVE_UNITS:
             raise RuntimeError(
@@ -339,6 +603,10 @@ def run_stimulate_stage(
             f"(original analysis error: {exc})"
         )
 
+    eta_ranked_units_top32 = list(record_analysis.get("eta_ranked_units_top32", []))
+    probe_candidates = eta_ranked_units_top32 if eta_ranked_units_top32 else putative_units
+    probe_source = "eta_top32" if eta_ranked_units_top32 else "putative_units"
+
     timestamp = _timestamp()
     manifest_path = RECORDING_DIR / f"cartpole_stimulate_{timestamp}_manifest.json"
     analysis_path = RECORDING_DIR / f"cartpole_stimulate_{timestamp}_analysis.json"
@@ -348,7 +616,11 @@ def run_stimulate_stage(
     mx.activate(list(wells))
 
     stimulus_recordings: List[Dict[str, Any]] = []
-    probed_units = putative_units[:max_probe_units]
+    probed_units = list(probe_candidates[:max_probe_units])
+    print_info(
+        f"Stimulate stage using probe_source={probe_source}, "
+        f"recording_pool={len(canonical_recording_electrodes)}, probes={len(probed_units)}"
+    )
     for index, unit in enumerate(probed_units, start=1):
         print_step(
             f"Stimulate phase probe {index}/{len(probed_units)} on electrode {int(unit['electrode'])}"
@@ -357,7 +629,7 @@ def run_stimulate_stage(
             stimulus_recordings.append(
                 _probe_single_unit(
                     source_unit=unit,
-                    recording_electrodes=recording_electrodes,
+                    recording_electrodes=canonical_recording_electrodes,
                     wells=wells,
                     repetitions=repetitions,
                     stim_frequency_hz=stim_frequency_hz,
@@ -365,9 +637,7 @@ def run_stimulate_stage(
                 )
             )
         except Exception as exc:
-            print_info(
-                f"Skipping electrode {int(unit['electrode'])}: failed to route/probe ({exc})"
-            )
+            print_info(f"Skipping electrode {int(unit['electrode'])}: failed to route/probe ({exc})")
 
     manifest = {
         "record_analysis_path": str(record_analysis_path),
@@ -376,6 +646,9 @@ def run_stimulate_stage(
             "sample_rate_hz": record_analysis["sample_rate_hz"],
             "putative_unit_count": len(putative_units),
         },
+        "recording_electrodes": [int(item) for item in canonical_recording_electrodes],
+        "probe_source": probe_source,
+        "probed_unit_count": len(probed_units),
         "stimulus_recordings": stimulus_recordings,
     }
     _json_dump(manifest_path, manifest)
@@ -393,6 +666,11 @@ def run_stimulate_stage(
             detection_multiplier=REALTIME_DETECTION_MULTIPLIER,
             burst_mad_multiplier=BURST_MAD_MULTIPLIER,
         )
+        _inject_selection_metadata(
+            selection_path=selection_path,
+            recording_electrodes=canonical_recording_electrodes,
+            eta_ranked_units_top32=eta_ranked_units_top32,
+        )
     except RuntimeError as exc:
         if not allow_empty_putative:
             raise
@@ -404,6 +682,8 @@ def run_stimulate_stage(
             selection_path=selection_path,
             analysis_path=analysis_path,
             reason=debug_reason,
+            recording_electrodes=canonical_recording_electrodes,
+            eta_ranked_units_top32=eta_ranked_units_top32,
         )
     print_success(f"Stimulate manifest written to {manifest_path}")
     print_success(f"Stimulate analysis written to {analysis_path}")
@@ -419,24 +699,24 @@ def run_stimulate_stage(
 def run_full_preexperiment(
     duration_s: float,
     wells: Sequence[int],
-    recording_electrodes: Sequence[int],
     repetitions: int,
     stim_frequency_hz: float,
     stim_neighbor_radius: int,
     max_probe_units: int,
     allow_empty_putative: bool = False,
     mock_putative_count: int = MIN_PUTATIVE_UNITS,
-) -> Dict[str, Path]:
+    scan_budget: str = "balanced",
+) -> Dict[str, Any]:
     record_outputs = run_record_stage(
         duration_s=duration_s,
         wells=wells,
-        recording_electrodes=recording_electrodes,
         analyze=True,
+        scan_budget=scan_budget,
     )
     stimulate_outputs = run_stimulate_stage(
         record_analysis_path=record_outputs["analysis_path"],
         wells=wells,
-        recording_electrodes=recording_electrodes,
+        recording_electrodes=record_outputs["recording_electrodes"],
         repetitions=repetitions,
         stim_frequency_hz=stim_frequency_hz,
         stim_neighbor_radius=stim_neighbor_radius,
@@ -457,6 +737,12 @@ def main() -> int:
     record_parser.add_argument("--duration-s", type=float, default=300.0)
     record_parser.add_argument("--wells", type=int, nargs="+", default=[0])
     record_parser.add_argument("--no-analysis", action="store_true")
+    record_parser.add_argument(
+        "--scan-budget",
+        type=str,
+        choices=tuple(SCAN_BATCH_DURATION_S.keys()),
+        default="balanced",
+    )
 
     stimulate_parser = subparsers.add_parser("stimulate")
     stimulate_parser.add_argument("--record-analysis", type=Path, required=True)
@@ -464,7 +750,7 @@ def main() -> int:
     stimulate_parser.add_argument("--repetitions", type=int, default=STIM_REPETITIONS)
     stimulate_parser.add_argument("--stim-frequency-hz", type=float, default=STIM_FREQUENCY_HZ)
     stimulate_parser.add_argument("--stim-neighbor-radius", type=int, default=2)
-    stimulate_parser.add_argument("--max-probe-units", type=int, default=16)
+    stimulate_parser.add_argument("--max-probe-units", type=int, default=DEFAULT_MAX_PROBE_UNITS)
     stimulate_parser.add_argument("--allow-empty-putative", action="store_true")
     stimulate_parser.add_argument("--mock-putative-count", type=int, default=MIN_PUTATIVE_UNITS)
 
@@ -474,9 +760,15 @@ def main() -> int:
     full_parser.add_argument("--repetitions", type=int, default=STIM_REPETITIONS)
     full_parser.add_argument("--stim-frequency-hz", type=float, default=STIM_FREQUENCY_HZ)
     full_parser.add_argument("--stim-neighbor-radius", type=int, default=2)
-    full_parser.add_argument("--max-probe-units", type=int, default=16)
+    full_parser.add_argument("--max-probe-units", type=int, default=DEFAULT_MAX_PROBE_UNITS)
     full_parser.add_argument("--allow-empty-putative", action="store_true")
     full_parser.add_argument("--mock-putative-count", type=int, default=MIN_PUTATIVE_UNITS)
+    full_parser.add_argument(
+        "--scan-budget",
+        type=str,
+        choices=tuple(SCAN_BATCH_DURATION_S.keys()),
+        default="balanced",
+    )
 
     args = parser.parse_args()
 
@@ -484,14 +776,15 @@ def main() -> int:
         run_record_stage(
             duration_s=args.duration_s,
             wells=args.wells,
-            recording_electrodes=RECORDING_ELECTRODES,
             analyze=not args.no_analysis,
+            scan_budget=args.scan_budget,
         )
     elif args.command == "stimulate":
+        recording_pool = _resolve_recording_pool_for_stimulate(args.record_analysis)
         run_stimulate_stage(
             record_analysis_path=args.record_analysis,
             wells=args.wells,
-            recording_electrodes=RECORDING_ELECTRODES,
+            recording_electrodes=recording_pool,
             repetitions=args.repetitions,
             stim_frequency_hz=args.stim_frequency_hz,
             stim_neighbor_radius=args.stim_neighbor_radius,
@@ -503,13 +796,13 @@ def main() -> int:
         run_full_preexperiment(
             duration_s=args.duration_s,
             wells=args.wells,
-            recording_electrodes=RECORDING_ELECTRODES,
             repetitions=args.repetitions,
             stim_frequency_hz=args.stim_frequency_hz,
             stim_neighbor_radius=args.stim_neighbor_radius,
             max_probe_units=args.max_probe_units,
             allow_empty_putative=args.allow_empty_putative,
             mock_putative_count=args.mock_putative_count,
+            scan_budget=args.scan_budget,
         )
     else:  # pragma: no cover - argparse guards this
         raise RuntimeError(f"Unsupported command {args.command}")
