@@ -75,6 +75,7 @@ class StimulusProbeSummary:
     repetitions: int
     burst_probability: float
     target_probabilities: List[PairConnectivity]
+    salpa_stats: Dict[str, Any]
 
 
 @dataclass
@@ -115,6 +116,126 @@ def _extract_event_frame_numbers(events: np.ndarray) -> np.ndarray:
     if events.ndim == 1:
         return np.asarray(events, dtype=np.int64)
     return np.asarray(events[:, 0], dtype=np.int64)
+
+
+SALPA_EVENT_LABEL = "stimulus_probe"
+SALPA_POLY_ORDER = 2
+SALPA_FIT_PRE_WINDOW_MS = (-1.5, -0.1)
+SALPA_REPLACE_WINDOW_MS = (0.0, 1.0)
+SALPA_FIT_POST_WINDOW_MS = (1.0, 2.5)
+
+
+def _ms_to_samples(window_ms: float, sample_rate_hz: float) -> int:
+    return int(round(window_ms * sample_rate_hz / 1000.0))
+
+
+def _to_text(value: Any) -> str:
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="ignore")
+    return str(value)
+
+
+def _extract_stimulus_event_frame_numbers(
+    events: np.ndarray,
+    stimulus_event_label: str = SALPA_EVENT_LABEL,
+) -> Tuple[np.ndarray, str]:
+    all_frame_numbers = _extract_event_frame_numbers(events)
+    if all_frame_numbers.size == 0:
+        return all_frame_numbers, "no_events"
+    if not events.dtype.names:
+        return all_frame_numbers, "all_events_unstructured"
+
+    message_field = None
+    for candidate in ("eventmessage", "message", "event_msg", "msg"):
+        if candidate in events.dtype.names:
+            message_field = candidate
+            break
+    if message_field is None:
+        return all_frame_numbers, "all_events_no_message"
+
+    selected_indices: List[int] = []
+    for idx, message in enumerate(events[message_field]):
+        if stimulus_event_label in _to_text(message):
+            selected_indices.append(idx)
+    if selected_indices:
+        return np.asarray(all_frame_numbers[selected_indices], dtype=np.int64), "stimulus_probe_filtered"
+    return all_frame_numbers, "all_events_fallback"
+
+
+def _fit_event_local_polynomial(
+    working_trace: np.ndarray,
+    event_index: int,
+    sample_rate_hz: float,
+    poly_order: int = SALPA_POLY_ORDER,
+    fit_pre_window_ms: Tuple[float, float] = SALPA_FIT_PRE_WINDOW_MS,
+    replace_window_ms: Tuple[float, float] = SALPA_REPLACE_WINDOW_MS,
+    fit_post_window_ms: Tuple[float, float] = SALPA_FIT_POST_WINDOW_MS,
+) -> bool:
+    trace_len = int(working_trace.shape[0])
+    pre_start = event_index + _ms_to_samples(fit_pre_window_ms[0], sample_rate_hz)
+    pre_end = event_index + _ms_to_samples(fit_pre_window_ms[1], sample_rate_hz)
+    replace_start = event_index + _ms_to_samples(replace_window_ms[0], sample_rate_hz)
+    replace_end = event_index + _ms_to_samples(replace_window_ms[1], sample_rate_hz)
+    post_start = event_index + _ms_to_samples(fit_post_window_ms[0], sample_rate_hz)
+    post_end = event_index + _ms_to_samples(fit_post_window_ms[1], sample_rate_hz)
+
+    bounded_pre_start = max(0, min(trace_len, pre_start))
+    bounded_pre_end = max(0, min(trace_len, pre_end))
+    bounded_replace_start = max(0, min(trace_len, replace_start))
+    bounded_replace_end = max(0, min(trace_len, replace_end))
+    bounded_post_start = max(0, min(trace_len, post_start))
+    bounded_post_end = max(0, min(trace_len, post_end))
+
+    if bounded_replace_end <= bounded_replace_start:
+        return False
+
+    fit_pre_idx = np.arange(bounded_pre_start, bounded_pre_end, dtype=np.int64)
+    fit_post_idx = np.arange(bounded_post_start, bounded_post_end, dtype=np.int64)
+    fit_idx = np.concatenate([fit_pre_idx, fit_post_idx])
+    if fit_idx.size <= poly_order:
+        return False
+
+    replace_idx = np.arange(bounded_replace_start, bounded_replace_end, dtype=np.int64)
+    if replace_idx.size == 0:
+        return False
+
+    x_fit = fit_idx.astype(np.float64) - float(event_index)
+    y_fit = working_trace[fit_idx].astype(np.float64)
+    x_replace = replace_idx.astype(np.float64) - float(event_index)
+
+    try:
+        coeff = np.polyfit(x_fit, y_fit, poly_order)
+        y_replace = np.polyval(coeff, x_replace)
+    except Exception:
+        return False
+
+    working_trace[replace_idx] = y_replace
+    return True
+
+
+def _apply_event_aligned_salpa(
+    trace: np.ndarray,
+    event_sample_indices: np.ndarray,
+    sample_rate_hz: float,
+) -> Tuple[np.ndarray, Dict[str, int]]:
+    working_trace = np.asarray(trace, dtype=np.float64).copy()
+    fit_success_count = 0
+    fit_fallback_count = 0
+    for event_index in event_sample_indices:
+        ok = _fit_event_local_polynomial(
+            working_trace=working_trace,
+            event_index=int(event_index),
+            sample_rate_hz=sample_rate_hz,
+        )
+        if ok:
+            fit_success_count += 1
+        else:
+            fit_fallback_count += 1
+    return working_trace, {
+        "event_count": int(event_sample_indices.size),
+        "fit_success_count": int(fit_success_count),
+        "fit_fallback_count": int(fit_fallback_count),
+    }
 
 
 def _detect_negative_spikes(
@@ -687,10 +808,7 @@ def analyze_stimulation_manifest(
     record_metadata = _load_recording_metadata(Path(record_analysis["metadata_path"]))
     sample_rate_hz = float(record_analysis["sample_rate_hz"])
     putative_units = record_analysis["putative_units"]
-    threshold_by_channel = {
-        int(unit["channel"]): -detection_multiplier * float(unit["rms"])
-        for unit in putative_units
-    }
+    sigma_multiplier = abs(float(detection_multiplier))
 
     first_start = int(first_order_window_ms[0] * sample_rate_hz / 1000.0)
     first_end = int(first_order_window_ms[1] * sample_rate_hz / 1000.0)
@@ -706,7 +824,7 @@ def analyze_stimulation_manifest(
             frame_numbers = np.asarray(root["groups/all_channels/frame_nos"])
             events = np.asarray(root["events"])
 
-        event_frame_numbers = _extract_event_frame_numbers(events)
+        event_frame_numbers, event_source = _extract_stimulus_event_frame_numbers(events)
         event_sample_indices = _event_sample_indices(frame_numbers, event_frame_numbers)
         if event_sample_indices.size == 0:
             continue
@@ -717,11 +835,28 @@ def analyze_stimulation_manifest(
             int(target_unit["channel"]): np.asarray(traces[int(target_unit["channel"])], dtype=np.float64)
             for target_unit in putative_units
         }
+        salpa_trace_by_channel: Dict[int, np.ndarray] = {}
+        threshold_by_channel: Dict[int, float] = {}
+        salpa_success_total = 0
+        salpa_fallback_total = 0
+        for target_unit in putative_units:
+            target_channel = int(target_unit["channel"])
+            salpa_trace, salpa_stats = _apply_event_aligned_salpa(
+                trace=channel_trace_cache[target_channel],
+                event_sample_indices=event_sample_indices,
+                sample_rate_hz=sample_rate_hz,
+            )
+            salpa_trace_by_channel[target_channel] = salpa_trace
+            sigma = max(float(np.std(salpa_trace)), 1e-9)
+            threshold_by_channel[target_channel] = -sigma_multiplier * sigma
+            salpa_success_total += int(salpa_stats["fit_success_count"])
+            salpa_fallback_total += int(salpa_stats["fit_fallback_count"])
+
         for event_index in event_sample_indices:
             total_spikes = 0
             for target_unit in putative_units:
                 target_channel = int(target_unit["channel"])
-                trace = channel_trace_cache[target_channel]
+                trace = salpa_trace_by_channel[target_channel]
                 threshold = float(threshold_by_channel[target_channel])
                 total_spikes += _count_negative_spikes_in_window(
                     trace,
@@ -735,7 +870,7 @@ def analyze_stimulation_manifest(
 
         for target_unit in putative_units:
             target_channel = int(target_unit["channel"])
-            trace = channel_trace_cache[target_channel]
+            trace = salpa_trace_by_channel[target_channel]
             threshold = float(threshold_by_channel[target_channel])
             summary = _summarize_target_connectivity(
                 trace=trace,
@@ -769,6 +904,13 @@ def analyze_stimulation_manifest(
                 repetitions=int(probe_item["repetitions"]),
                 burst_probability=_mean_probability(burst_events),
                 target_probabilities=target_probabilities,
+                salpa_stats={
+                    "event_source": event_source,
+                    "event_count": int(event_sample_indices.size),
+                    "channel_count": int(len(putative_units)),
+                    "fit_success_count_total": int(salpa_success_total),
+                    "fit_fallback_count_total": int(salpa_fallback_total),
+                },
             )
         )
 
@@ -786,6 +928,15 @@ def analyze_stimulation_manifest(
             "burst_detection_method": "median_plus_3mad" if burst_mad_multiplier == 3.0 else "median_plus_k_mad",
             "burst_mad_multiplier": burst_mad_multiplier,
             "multi_order_metric": "mean_spike_count_per_stim_nonburst",
+            "artifact_removal": {
+                "method": "event_aligned_salpa_local_polynomial",
+                "poly_order": SALPA_POLY_ORDER,
+                "fit_pre_window_ms": list(SALPA_FIT_PRE_WINDOW_MS),
+                "replace_window_ms": list(SALPA_REPLACE_WINDOW_MS),
+                "fit_post_window_ms": list(SALPA_FIT_POST_WINDOW_MS),
+                "sigma_threshold_rule": f"-{sigma_multiplier:g}*sigma_post_salpa",
+                "sample_rate_hz": sample_rate_hz,
+            },
             "probe_summaries": [
                 {
                     "source_channel": probe.source_channel,
@@ -793,6 +944,7 @@ def analyze_stimulation_manifest(
                     "resolved_stim_electrode": probe.resolved_stim_electrode,
                     "repetitions": probe.repetitions,
                     "burst_probability": probe.burst_probability,
+                    "salpa_stats": probe.salpa_stats,
                     "target_probabilities": [asdict(pair) for pair in probe.target_probabilities],
                 }
                 for probe in probe_summaries

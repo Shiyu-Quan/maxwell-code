@@ -184,6 +184,64 @@ def run_star_alignment_contract_test() -> None:
     if int(summary["nonburst_event_count"]) != 2:
         raise RuntimeError("Expected exactly 2 non-burst events in STAR alignment test")
 
+    # SALPA contract: event filtering should prioritize stimulus_probe labels.
+    event_dtype = np.dtype(
+        [
+            ("frameno", "<i8"),
+            ("eventtype", "<u4"),
+            ("eventid", "<u4"),
+            ("eventmessage", "O"),
+        ]
+    )
+    events = np.asarray(
+        [
+            (100, 0, 1, "noise_event"),
+            (200, 0, 2, "stimulus_probe"),
+            (300, 0, 3, "stimulus_probe_2"),
+        ],
+        dtype=event_dtype,
+    )
+    event_frames, event_source = selection._extract_stimulus_event_frame_numbers(events)  # pylint: disable=protected-access
+    if event_source != "stimulus_probe_filtered":
+        raise RuntimeError("Expected stimulus_probe_filtered event source when labels are present")
+    if event_frames.tolist() != [200, 300]:
+        raise RuntimeError("Unexpected filtered event frames for stimulus_probe labels")
+
+    # SALPA contract: artifact window amplitude should decrease while preserving a true negative spike.
+    sample_rate_hz = 20000.0
+    trace_salpa = np.random.normal(0.0, 0.2, size=5000).astype(np.float64)
+    event_samples = np.asarray([1000], dtype=np.int64)
+    trace_salpa[1000:1020] += 10.0  # stimulation artifact in first 1ms
+    trace_salpa[1060] = -4.0  # spike at +3ms
+    salpa_trace, salpa_stats = selection._apply_event_aligned_salpa(  # pylint: disable=protected-access
+        trace=trace_salpa,
+        event_sample_indices=event_samples,
+        sample_rate_hz=sample_rate_hz,
+    )
+    pre_artifact = float(np.mean(np.abs(trace_salpa[1000:1020])))
+    post_artifact = float(np.mean(np.abs(salpa_trace[1000:1020])))
+    if not (post_artifact < pre_artifact):
+        raise RuntimeError("SALPA did not reduce artifact window amplitude in synthetic test")
+    if int(salpa_stats["fit_success_count"]) < 1:
+        raise RuntimeError("Expected at least one successful SALPA fit in synthetic test")
+
+    sigma = max(float(np.std(salpa_trace)), 1e-9)
+    salpa_threshold = -3.0 * sigma
+    recovered_spike_count = selection._count_negative_spikes_in_window(  # pylint: disable=protected-access
+        trace=salpa_trace,
+        start_index=1000,
+        end_index=1200,
+        threshold=salpa_threshold,
+        refractory_samples=20,
+    )
+    if recovered_spike_count < 1:
+        raise RuntimeError("Expected 3σ post-SALPA detection to recover synthetic spike")
+
+    if "artifact_removal" not in selection_src:
+        raise RuntimeError("Expected stimulate_analysis payload to include artifact_removal metadata")
+    if "salpa_stats" not in selection_src:
+        raise RuntimeError("Expected probe summaries to include salpa_stats metadata")
+
     print("[OK] STAR alignment contract test passed")
 
 
