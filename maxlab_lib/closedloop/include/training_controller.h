@@ -8,15 +8,27 @@
 #include <string>
 #include <vector>
 
-enum class ClosedLoopMode {
-    CycledAdaptive,
+enum class ExperimentMode {
+    Cycled,
     ContinuousAdaptive,
+    NullCondition,
+    RandomCondition,
+    AdaptiveCondition,
+};
+
+enum class TrainingCondition {
+    Null,
+    Random,
+    Adaptive,
 };
 
 struct TrainingDecision {
+    bool eligible = false;
     bool delivered = false;
     int pattern_index = -1;
     std::string sequence_name;
+    std::string condition_name = "null";
+    std::string sequence_type = "none";
     double mean_5 = 0.0;
     double mean_20 = 0.0;
 };
@@ -29,7 +41,9 @@ public:
                        double min_reward = 10.0,
                        std::uint32_t random_seed = 12345);
 
-    TrainingDecision onEpisodeEnd(double reward_seconds);
+    TrainingDecision onEpisodeEnd(double reward_seconds,
+                                  TrainingCondition condition,
+                                  bool allow_delivery = true);
     std::size_t patternCount() const { return pattern_names_.size(); }
     const std::vector<double>& values() const { return values_; }
 

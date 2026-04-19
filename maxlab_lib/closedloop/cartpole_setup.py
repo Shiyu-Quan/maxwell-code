@@ -4,13 +4,14 @@ import argparse
 import itertools
 import json
 import os
+import random
 import signal
 import subprocess
 import threading
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 import maxlab as mx
 
@@ -30,13 +31,17 @@ READ_WINDOW_MS = 200
 TRAINING_WINDOW_MS = 300
 CYCLE_DURATION_S = 15 * 60
 REST_DURATION_S = 45 * 60
+FIRST_CYCLE_PASS_THRESHOLD_S = 10.0
+RANDOM_TRAINING_WINDOW_MS = 200
+ADAPTIVE_TRAINING_WINDOW_MS = 300
+PAPER_MODE_CHOICES = ("cycled", "continuous_adaptive", "null", "random", "adaptive")
 
 STIM_PARAMS = {
     # STAR methods aligned: 400 uV peak-to-peak biphasic pulse,
     # i.e. +/-200 uV per phase.
     "pulse_amplitude_mV": 0.2,
     "phase_us": 200,
-    "inter_pulse_interval_ms": 5,
+    "inter_pulse_interval_ms": 10,
     "training_frequency_hz": 10,
 }
 
@@ -80,13 +85,20 @@ def print_success(message: str) -> None:
 
 
 class CPPProcessManager:
-    def __init__(self, executable: str, config_path: Path):
+    def __init__(
+        self,
+        executable: str,
+        config_path: Path,
+        line_handler: Optional[Callable[[str], Optional[str]]] = None,
+    ):
         self.executable = executable
         self.config_path = config_path
         self.process: Optional[subprocess.Popen] = None
         self.output_thread: Optional[threading.Thread] = None
         self.ready_event = threading.Event()
         self.running = False
+        self.line_handler = line_handler
+        self.stdin_lock = threading.Lock()
 
     def start(self) -> None:
         self.process = subprocess.Popen(
@@ -115,12 +127,20 @@ class CPPProcessManager:
             print(f"[C++] {line}")
             if ready_marker in line:
                 self.ready_event.set()
+            if self.line_handler is not None:
+                response = self.line_handler(line)
+                if response:
+                    self._write_stdin_line(response)
 
     def send_start_signal(self) -> None:
+        self._write_stdin_line("start")
+
+    def _write_stdin_line(self, line: str) -> None:
         if self.process is None or self.process.stdin is None:
             raise RuntimeError("C++ process is not running")
-        self.process.stdin.write("start\n")
-        self.process.stdin.flush()
+        with self.stdin_lock:
+            self.process.stdin.write(f"{line}\n")
+            self.process.stdin.flush()
 
     def wait(self, timeout: Optional[float] = None) -> int:
         if self.process is None:
@@ -310,13 +330,71 @@ def prepare_encoding_sequences(unit_ids: Sequence[int], all_unit_ids: Sequence[i
     return sequences
 
 
-def prepare_training_sequences(training_unit_ids: Sequence[int], all_unit_ids: Sequence[int]) -> List[str]:
+def resolve_mode_schedule(mode: str, num_cycles: int) -> List[Dict[str, object]]:
+    if mode not in PAPER_MODE_CHOICES:
+        raise ValueError(f"Unsupported mode: {mode}")
+    if num_cycles <= 0:
+        raise ValueError(f"num_cycles must be > 0, got {num_cycles}")
+
+    if mode == "cycled":
+        conditions = ["null", "random", "adaptive"]
+        return [
+            {"cycle_index": idx, "condition": conditions[idx % len(conditions)]}
+            for idx in range(num_cycles)
+        ]
+
+    condition = "adaptive" if mode == "continuous_adaptive" else mode
+    return [{"cycle_index": idx, "condition": condition} for idx in range(num_cycles)]
+
+
+def requires_adaptive_patterns(mode: str, num_cycles: int) -> bool:
+    return any(cycle["condition"] == "adaptive" for cycle in resolve_mode_schedule(mode, num_cycles))
+
+
+def requires_random_bridge(mode: str, num_cycles: int) -> bool:
+    return any(cycle["condition"] == "random" for cycle in resolve_mode_schedule(mode, num_cycles))
+
+
+def validate_mode_requirements(mode: str, training_stim_electrodes: Sequence[int]) -> None:
+    training_count = len(training_stim_electrodes)
+    if mode in {"random", "cycled"} and training_count < 5:
+        raise ValueError(
+            f"Mode '{mode}' requires at least 5 training electrodes, got {training_count}"
+        )
+    if mode in {"adaptive", "continuous_adaptive"} and training_count < 2:
+        raise ValueError(
+            f"Mode '{mode}' requires at least 2 training electrodes, got {training_count}"
+        )
+
+
+def _period_samples() -> int:
+    return int(20000 / STIM_PARAMS["training_frequency_hz"])
+
+
+def _inter_pulse_samples() -> int:
+    return int(STIM_PARAMS["inter_pulse_interval_ms"] * 1000 / 50)
+
+
+def _append_training_epoch(
+    seq: mx.Sequence,
+    unit_ids: Sequence[int],
+    all_unit_ids: Sequence[int],
+    event_prefix: str,
+) -> None:
+    inter_pulse_samples = _inter_pulse_samples()
+    for pulse_index, unit_id in enumerate(unit_ids):
+        append_pulse_for_unit(seq, unit_id, all_unit_ids, f"{event_prefix}_{pulse_index}")
+        if pulse_index < len(unit_ids) - 1:
+            seq.append(mx.DelaySamples(inter_pulse_samples))
+    trailing_gap = max(0, _period_samples() - inter_pulse_samples * max(0, len(unit_ids) - 1))
+    seq.append(mx.DelaySamples(trailing_gap))
+
+
+def prepare_adaptive_training_sequences(training_unit_ids: Sequence[int], all_unit_ids: Sequence[int]) -> List[str]:
     if len(training_unit_ids) < 2:
         raise RuntimeError("At least two training units are required")
     pattern_names: List[str] = []
-    inter_pulse_samples = int(STIM_PARAMS["inter_pulse_interval_ms"] * 1000 / 50)
-    period_samples = int(20000 / STIM_PARAMS["training_frequency_hz"])
-    repetitions = int((TRAINING_WINDOW_MS / 1000.0) * STIM_PARAMS["training_frequency_hz"])
+    repetitions = int((ADAPTIVE_TRAINING_WINDOW_MS / 1000.0) * STIM_PARAMS["training_frequency_hz"])
 
     for first_idx, second_idx in itertools.combinations(range(len(training_unit_ids)), 2):
         name = f"train_pair_{first_idx}_{second_idx}"
@@ -324,13 +402,77 @@ def prepare_training_sequences(training_unit_ids: Sequence[int], all_unit_ids: S
         first_unit = training_unit_ids[first_idx]
         second_unit = training_unit_ids[second_idx]
         for repetition in range(repetitions):
-            append_pulse_for_unit(seq, first_unit, all_unit_ids, f"{name}_a_{repetition}")
-            seq.append(mx.DelaySamples(inter_pulse_samples))
-            append_pulse_for_unit(seq, second_unit, all_unit_ids, f"{name}_b_{repetition}")
-            seq.append(mx.DelaySamples(max(0, period_samples - inter_pulse_samples)))
+            _append_training_epoch(
+                seq,
+                [first_unit, second_unit],
+                all_unit_ids,
+                f"{name}_{repetition}",
+            )
         seq.send()
         pattern_names.append(name)
     return pattern_names
+
+
+def prepare_training_sequences(training_unit_ids: Sequence[int], all_unit_ids: Sequence[int]) -> List[str]:
+    return prepare_adaptive_training_sequences(training_unit_ids, all_unit_ids)
+
+
+class RandomTrainingSequenceManager:
+    def __init__(
+        self,
+        training_electrodes: Sequence[int],
+        training_unit_ids: Sequence[int],
+        all_unit_ids: Sequence[int],
+        random_seed: int = 12345,
+    ) -> None:
+        if len(training_electrodes) != len(training_unit_ids):
+            raise ValueError("training_electrodes and training_unit_ids must align one-to-one")
+        if len(training_unit_ids) < 5:
+            raise ValueError("Random training requires at least 5 training units")
+        self.training_pairs = list(zip(training_electrodes, training_unit_ids))
+        self.all_unit_ids = list(all_unit_ids)
+        self.rng = random.Random(random_seed)
+        self.sequence_counter = 0
+
+    def generate_sequence(self) -> Dict[str, object]:
+        selected_pairs = self.rng.sample(self.training_pairs, 5)
+        selected_electrodes = [int(electrode) for electrode, _ in selected_pairs]
+        selected_units = [int(unit_id) for _, unit_id in selected_pairs]
+        repetitions = int((RANDOM_TRAINING_WINDOW_MS / 1000.0) * STIM_PARAMS["training_frequency_hz"])
+        sequence_name = f"train_random5_{self.sequence_counter}"
+        self.sequence_counter += 1
+        seq = mx.Sequence(name=sequence_name, persistent=True)
+        for repetition in range(repetitions):
+            _append_training_epoch(
+                seq,
+                selected_units,
+                self.all_unit_ids,
+                f"{sequence_name}_{repetition}",
+            )
+        seq.send()
+        return {
+            "sequence_name": sequence_name,
+            "sequence_type": "random5",
+            "training_electrodes": selected_electrodes,
+        }
+
+
+def make_training_request_handler(
+    random_sequence_manager: Optional[RandomTrainingSequenceManager],
+) -> Callable[[str], Optional[str]]:
+    def handle_line(line: str) -> Optional[str]:
+        if not line.startswith("[TRAINING_REQUEST]"):
+            return None
+        request_type = line.partition("]")[2].strip()
+        if request_type != "random5":
+            return "training_sequence_error|unsupported_request"
+        if random_sequence_manager is None:
+            return "training_sequence_error|random_manager_unavailable"
+        payload = random_sequence_manager.generate_sequence()
+        electrodes = ",".join(str(value) for value in payload["training_electrodes"])
+        return f"training_sequence|{payload['sequence_name']}|{payload['sequence_type']}|{electrodes}"
+
+    return handle_line
 
 
 def start_recording(recording_name: str, wells: Sequence[int]) -> mx.Saving:
@@ -349,8 +491,7 @@ def stop_recording(saving: mx.Saving) -> None:
     time.sleep(mx.Timing.waitAfterRecording)
 
 
-def export_runtime_config(
-    config_path: Path,
+def build_runtime_config_payload(
     target_well: int,
     decoding_left_channels: Sequence[int],
     decoding_right_channels: Sequence[int],
@@ -358,22 +499,28 @@ def export_runtime_config(
     training_stim_electrodes: Optional[Sequence[int]],
     decoding_left_electrodes: Optional[Sequence[int]],
     decoding_right_electrodes: Optional[Sequence[int]],
-    training_pattern_names: Sequence[str],
+    adaptive_pattern_names: Sequence[str],
     log_path: Path,
-    duration_minutes: int,
+    num_cycles: int,
     mode: str,
     show_gui: bool,
-) -> None:
-    runtime_config = {
+) -> Dict[str, object]:
+    cycle_schedule = resolve_mode_schedule(mode, num_cycles)
+    cycle_conditions = [str(cycle["condition"]) for cycle in cycle_schedule]
+    experiment_duration_s = num_cycles * (CYCLE_DURATION_S + REST_DURATION_S)
+    return {
         "target_well": target_well,
         "read_window_ms": READ_WINDOW_MS,
         "training_window_ms": TRAINING_WINDOW_MS,
         "show_gui": bool(show_gui),
         "wait_for_sync": True,
         "channel_count": 1024,
-        "experiment_duration_s": duration_minutes * 60,
-        "cycle_duration_s": CYCLE_DURATION_S,
-        "rest_duration_s": 0 if mode == "continuous_adaptive" else REST_DURATION_S,
+        "experiment_duration_s": experiment_duration_s,
+        "num_cycles": int(num_cycles),
+        "active_cycle_duration_s": CYCLE_DURATION_S,
+        "rest_duration_s": REST_DURATION_S,
+        "cycle_condition_schedule": cycle_conditions,
+        "first_cycle_pass_threshold_s": FIRST_CYCLE_PASS_THRESHOLD_S,
         "encoding_scale_a": 7.0,
         "encoding_scale_b": 0.15,
         "ema_alpha": 0.2,
@@ -395,19 +542,53 @@ def export_runtime_config(
         "artifact_filter_mode": "iir",
         "encoding_left_sequence": "encode_left_pulse",
         "encoding_right_sequence": "encode_right_pulse",
-        "training_pattern_names": list(training_pattern_names),
+        "training_pattern_names": list(adaptive_pattern_names),
+        "adaptive_training_pattern_names": list(adaptive_pattern_names),
         "log_path": str(log_path),
         "random_seed": 12345,
         "mode": mode,
     }
+
+
+def export_runtime_config(
+    config_path: Path,
+    target_well: int,
+    decoding_left_channels: Sequence[int],
+    decoding_right_channels: Sequence[int],
+    encoding_stim_electrodes: Optional[Sequence[int]],
+    training_stim_electrodes: Optional[Sequence[int]],
+    decoding_left_electrodes: Optional[Sequence[int]],
+    decoding_right_electrodes: Optional[Sequence[int]],
+    adaptive_pattern_names: Sequence[str],
+    log_path: Path,
+    num_cycles: int,
+    mode: str,
+    show_gui: bool,
+) -> None:
+    runtime_config = build_runtime_config_payload(
+        target_well=target_well,
+        decoding_left_channels=decoding_left_channels,
+        decoding_right_channels=decoding_right_channels,
+        encoding_stim_electrodes=encoding_stim_electrodes,
+        training_stim_electrodes=training_stim_electrodes,
+        decoding_left_electrodes=decoding_left_electrodes,
+        decoding_right_electrodes=decoding_right_electrodes,
+        adaptive_pattern_names=adaptive_pattern_names,
+        log_path=log_path,
+        num_cycles=num_cycles,
+        mode=mode,
+        show_gui=show_gui,
+    )
     config_path.write_text(json.dumps(runtime_config, indent=2), encoding="utf-8")
 
 
-def run_cartpole_experiment(duration_minutes: int, mode: str, wells: Sequence[int], show_gui: bool) -> None:
-    if mode not in {"cycled_adaptive", "continuous_adaptive"}:
+def run_cartpole_experiment(num_cycles: int, mode: str, wells: Sequence[int], show_gui: bool) -> None:
+    if mode not in PAPER_MODE_CHOICES:
         raise ValueError(f"Unsupported mode: {mode}")
     if not os.path.exists(CPP_EXECUTABLE):
         raise RuntimeError(f"C++ executable not found: {CPP_EXECUTABLE}")
+    if num_cycles <= 0:
+        raise ValueError(f"num_cycles must be > 0, got {num_cycles}")
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     session_name = f"cartpole_{mode}_{timestamp}"
@@ -437,11 +618,21 @@ def run_cartpole_experiment(duration_minutes: int, mode: str, wells: Sequence[in
 
     resolved_encoding = resolved_stim[: len(ENCODING_STIM_ELECTRODES)]
     resolved_training = resolved_stim[len(ENCODING_STIM_ELECTRODES) :]
+    validate_mode_requirements(mode, resolved_training)
     encoding_units = [electrode_to_unit[electrode] for electrode in resolved_encoding]
     training_units = [electrode_to_unit[electrode] for electrode in resolved_training]
 
     prepare_encoding_sequences(encoding_units, all_units)
-    training_pattern_names = prepare_training_sequences(training_units, all_units)
+    adaptive_pattern_names = (
+        prepare_adaptive_training_sequences(training_units, all_units)
+        if requires_adaptive_patterns(mode, num_cycles)
+        else []
+    )
+    random_sequence_manager = (
+        RandomTrainingSequenceManager(resolved_training, training_units, all_units)
+        if requires_random_bridge(mode, num_cycles)
+        else None
+    )
 
     config = array.get_config()
     decoding_left_channels = config.get_channels_for_electrodes(DECODING_LEFT_ELECTRODES)
@@ -458,15 +649,19 @@ def run_cartpole_experiment(duration_minutes: int, mode: str, wells: Sequence[in
         training_stim_electrodes=resolved_training,
         decoding_left_electrodes=DECODING_LEFT_ELECTRODES,
         decoding_right_electrodes=DECODING_RIGHT_ELECTRODES,
-        training_pattern_names=training_pattern_names,
+        adaptive_pattern_names=adaptive_pattern_names,
         log_path=log_path,
-        duration_minutes=duration_minutes,
+        num_cycles=num_cycles,
         mode=mode,
         show_gui=show_gui,
     )
     print_success(f"Runtime config written to {config_path}")
 
-    cpp = CPPProcessManager(CPP_EXECUTABLE, config_path)
+    cpp = CPPProcessManager(
+        CPP_EXECUTABLE,
+        config_path,
+        line_handler=make_training_request_handler(random_sequence_manager),
+    )
     cpp.start()
     saving = start_recording(session_name, wells)
 
@@ -488,19 +683,24 @@ def run_cartpole_experiment(duration_minutes: int, mode: str, wells: Sequence[in
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Cartpole closed-loop experiment")
-    parser.add_argument("--duration", type=int, default=15, help="Experiment duration in minutes")
+    parser.add_argument(
+        "--num-cycles",
+        type=int,
+        required=True,
+        help="Number of experiment cycles. One cycle = 15 min training + 45 min rest.",
+    )
     parser.add_argument(
         "--mode",
         type=str,
-        default="cycled_adaptive",
-        choices=["cycled_adaptive", "continuous_adaptive"],
+        default="cycled",
+        choices=list(PAPER_MODE_CHOICES),
     )
     parser.add_argument("--wells", type=int, nargs="+", default=[0])
     parser.add_argument("--show-gui", action="store_true")
     args = parser.parse_args()
 
     run_cartpole_experiment(
-        duration_minutes=args.duration,
+        num_cycles=args.num_cycles,
         mode=args.mode,
         wells=args.wells,
         show_gui=args.show_gui,

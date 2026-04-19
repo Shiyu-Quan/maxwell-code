@@ -99,6 +99,102 @@ def run_selection_config_compat_test() -> None:
     print("[OK] Selection config compatibility test passed")
 
 
+def run_training_mode_contract_test() -> None:
+    closedloop_dir = REPO_ROOT / "maxlab_lib" / "closedloop"
+    if str(closedloop_dir) not in sys.path:
+        sys.path.insert(0, str(closedloop_dir))
+
+    import cartpole_selected_setup as selected_setup  # pylint: disable=import-outside-toplevel
+    import cartpole_setup as cartpole_setup_module  # pylint: disable=import-outside-toplevel
+
+    selected_script = closedloop_dir / "cartpole_selected_setup.py"
+    result = run_cmd([sys.executable, str(selected_script), "--help"], cwd=REPO_ROOT, check=False)
+    help_text = f"{result.stdout}\n{result.stderr}"
+    for expected_mode in ("cycled", "continuous_adaptive", "null", "random", "adaptive"):
+        if expected_mode not in help_text:
+            raise RuntimeError(f"Expected selected_setup help to expose mode '{expected_mode}'")
+    if "cycled_adaptive" in help_text:
+        raise RuntimeError("selected_setup help unexpectedly still exposes removed mode cycled_adaptive")
+    if "--duration" in help_text:
+        raise RuntimeError("selected_setup help unexpectedly still exposes removed --duration flag")
+
+    try:
+        cartpole_setup_module.resolve_mode_schedule("cycled", 6)
+    except AttributeError as exc:
+        raise RuntimeError("Expected cartpole_setup.resolve_mode_schedule helper to exist") from exc
+
+    cycled_schedule = cartpole_setup_module.resolve_mode_schedule("cycled", 6)
+    cycled_conditions = [cycle["condition"] for cycle in cycled_schedule]
+    if cycled_conditions != ["null", "random", "adaptive", "null", "random", "adaptive"]:
+        raise RuntimeError(f"Unexpected cycled schedule: {cycled_conditions}")
+
+    continuous_schedule = cartpole_setup_module.resolve_mode_schedule("continuous_adaptive", 4)
+    continuous_conditions = [cycle["condition"] for cycle in continuous_schedule]
+    if continuous_conditions != ["adaptive", "adaptive", "adaptive", "adaptive"]:
+        raise RuntimeError(f"Unexpected continuous adaptive schedule: {continuous_conditions}")
+
+    if "cycled_adaptive" in (getattr(selected_setup, "__doc__", "") or ""):
+        raise RuntimeError("selected_setup module doc unexpectedly still mentions cycled_adaptive")
+
+    try:
+        payload = cartpole_setup_module.build_runtime_config_payload(
+            target_well=0,
+            decoding_left_channels=[0],
+            decoding_right_channels=[1],
+            encoding_stim_electrodes=[100, 101],
+            training_stim_electrodes=[200, 201, 202, 203, 204],
+            decoding_left_electrodes=[300],
+            decoding_right_electrodes=[301],
+            adaptive_pattern_names=["train_pair_0_1"],
+            log_path=Path("/tmp/cartpole_modes_contract.jsonl"),
+            num_cycles=3,
+            mode="cycled",
+            show_gui=False,
+        )
+    except AttributeError as exc:
+        raise RuntimeError("Expected cartpole_setup.build_runtime_config_payload helper to exist") from exc
+
+    if payload["experiment_duration_s"] != 3 * (15 * 60 + 45 * 60):
+        raise RuntimeError("Unexpected experiment duration for cycled config payload")
+    if payload["cycle_condition_schedule"] != ["null", "random", "adaptive"]:
+        raise RuntimeError("Unexpected cycle_condition_schedule in config payload")
+    if payload["first_cycle_pass_threshold_s"] != 10.0:
+        raise RuntimeError("Expected first_cycle_pass_threshold_s=10.0")
+    if payload["rest_duration_s"] != 45 * 60:
+        raise RuntimeError("Expected all paper-aligned modes to retain 45 minute rests")
+
+    try:
+        selected_setup.validate_mode_requirements(
+            mode="random",
+            training_stim_electrodes=[1, 2, 3, 4],
+        )
+    except AttributeError as exc:
+        raise RuntimeError("Expected cartpole_selected_setup.validate_mode_requirements helper to exist") from exc
+    except ValueError:
+        pass
+    else:
+        raise RuntimeError("Expected random mode to require at least 5 training electrodes")
+
+    class _DummyRandomManager:
+        def generate_sequence(self) -> dict:
+            return {
+                "sequence_name": "train_random5_0",
+                "sequence_type": "random5",
+                "training_electrodes": [11, 22, 33, 44, 55],
+            }
+
+    response = cartpole_setup_module.make_training_request_handler(_DummyRandomManager())(
+        "[TRAINING_REQUEST] random5"
+    )
+    if response != "training_sequence|train_random5_0|random5|11,22,33,44,55":
+        raise RuntimeError(f"Unexpected training request response payload: {response}")
+    error_response = cartpole_setup_module.make_training_request_handler(None)("[TRAINING_REQUEST] random5")
+    if error_response != "training_sequence_error|random_manager_unavailable":
+        raise RuntimeError(f"Unexpected missing-random-manager response: {error_response}")
+
+    print("[OK] Training mode contract test passed")
+
+
 def run_preexperiment_contract_test() -> None:
     preexp_script = REPO_ROOT / "maxlab_lib" / "closedloop" / "cartpole_preexperiment.py"
     result = run_cmd([sys.executable, str(preexp_script), "full", "--help"], cwd=REPO_ROOT, check=False)
@@ -152,6 +248,12 @@ def run_star_alignment_contract_test() -> None:
     loop_src = (closedloop_dir / "maxone_with_filter.cpp").read_text(encoding="utf-8")
     if "(1.0 - config.ema_alpha) * state.left_rate + config.ema_alpha * left_count" not in loop_src:
         raise RuntimeError("Expected EMA update formula aligned with STAR methods")
+    if 'config.active_cycle_duration_s = parser.numberValue("active_cycle_duration_s")' not in loop_src:
+        raise RuntimeError("Expected runtime config parser to consume active_cycle_duration_s")
+    if 'config.cycle_condition_schedule = parser.stringArrayValue("cycle_condition_schedule")' not in loop_src:
+        raise RuntimeError("Expected runtime config parser to consume cycle_condition_schedule")
+    if "cycled_adaptive" in loop_src:
+        raise RuntimeError("Expected maxone_with_filter.cpp to remove cycled_adaptive runtime mode")
 
     # P0 contract: C1/Cm summary and burst exclusion behavior.
     trace = np.zeros(15000, dtype=np.float64)
@@ -255,9 +357,12 @@ def run_minimal_config_test() -> None:
             "show_gui": False,
             "wait_for_sync": False,
             "channel_count": 1024,
-            "experiment_duration_s": 1.0,
-            "cycle_duration_s": 900.0,
-            "rest_duration_s": 0.0,
+            "experiment_duration_s": 3600.0,
+            "num_cycles": 1,
+            "active_cycle_duration_s": 900.0,
+            "rest_duration_s": 2700.0,
+            "cycle_condition_schedule": ["adaptive"],
+            "first_cycle_pass_threshold_s": 10.0,
             "encoding_scale_a": 7.0,
             "encoding_scale_b": 0.15,
             "ema_alpha": 0.2,
@@ -273,7 +378,7 @@ def run_minimal_config_test() -> None:
             "training_pattern_names": [],
             "log_path": "/tmp/cartpole_no_hw_smoke_episodes.jsonl",
             "random_seed": 12345,
-            "mode": "continuous_adaptive",
+            "mode": "cycled",
         }
         json.dump(payload, f)
 
@@ -296,6 +401,7 @@ def main() -> int:
     run_sync_test()
     run_preexperiment_contract_test()
     run_star_alignment_contract_test()
+    run_training_mode_contract_test()
     run_selection_config_compat_test()
     run_minimal_config_test()
     print("=" * 70)

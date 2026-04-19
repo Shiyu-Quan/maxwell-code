@@ -4,6 +4,22 @@
 #include <numeric>
 #include <utility>
 
+namespace {
+
+const char* conditionName(TrainingCondition condition) {
+    switch (condition) {
+        case TrainingCondition::Null:
+            return "null";
+        case TrainingCondition::Random:
+            return "random";
+        case TrainingCondition::Adaptive:
+            return "adaptive";
+    }
+    return "null";
+}
+
+} // namespace
+
 TrainingController::TrainingController(std::vector<std::string> pattern_names,
                                        double value_alpha,
                                        double eligibility_gamma,
@@ -17,7 +33,9 @@ TrainingController::TrainingController(std::vector<std::string> pattern_names,
       min_reward_(min_reward),
       rng_(random_seed) {}
 
-TrainingDecision TrainingController::onEpisodeEnd(double reward_seconds) {
+TrainingDecision TrainingController::onEpisodeEnd(double reward_seconds,
+                                                  TrainingCondition condition,
+                                                  bool allow_delivery) {
     updateValues(reward_seconds);
 
     recent_rewards_.push_back(reward_seconds);
@@ -26,14 +44,11 @@ TrainingDecision TrainingController::onEpisodeEnd(double reward_seconds) {
     }
 
     TrainingDecision decision;
+    decision.condition_name = conditionName(condition);
     decision.mean_5 = movingAverage(5);
     decision.mean_20 = movingAverage(20);
 
     decayEligibility();
-
-    if (pattern_names_.empty()) {
-        return decision;
-    }
 
     if (recent_rewards_.size() < 5) {
         return decision;
@@ -41,6 +56,25 @@ TrainingDecision TrainingController::onEpisodeEnd(double reward_seconds) {
 
     // STAR methods condition: only stimulate when short-term performance drops.
     if (decision.mean_5 >= decision.mean_20) {
+        return decision;
+    }
+
+    decision.eligible = true;
+    if (!allow_delivery) {
+        return decision;
+    }
+
+    if (condition == TrainingCondition::Null) {
+        return decision;
+    }
+
+    if (condition == TrainingCondition::Random) {
+        decision.delivered = true;
+        decision.sequence_type = "random5";
+        return decision;
+    }
+
+    if (pattern_names_.empty()) {
         return decision;
     }
 
@@ -53,6 +87,7 @@ TrainingDecision TrainingController::onEpisodeEnd(double reward_seconds) {
     decision.delivered = true;
     decision.pattern_index = pattern_index;
     decision.sequence_name = pattern_names_[static_cast<std::size_t>(pattern_index)];
+    decision.sequence_type = "adaptive_pair";
     return decision;
 }
 

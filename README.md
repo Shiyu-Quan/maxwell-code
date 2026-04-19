@@ -54,26 +54,31 @@ python3 maxlab_lib/closedloop/cartpole_preexperiment.py full \
 cd /home/descfly/maxwell-code
 python3 maxlab_lib/closedloop/cartpole_selected_setup.py \
   --selection-config SELECTION_JSON \
-  --duration 15 \
-  --mode cycled_adaptive \
-  --wells 0
-```
-
-持续训练：
-```bash
-python3 maxlab_lib/closedloop/cartpole_selected_setup.py \
-  --selection-config SELECTION_JSON \
-  --duration 15 \
-  --mode continuous_adaptive \
-  --wells 0
-```
-
-按实验周期运行（`1`周期=`15`分钟训练+`45`分钟休息）：
-```bash
-python3 maxlab_lib/closedloop/cartpole_selected_setup.py \
-  --selection-config SELECTION_JSON \
-  --mode cycled_adaptive \
+  --mode cycled \
   --num-cycles 3 \
+  --wells 0
+```
+
+模式说明：
+- `cycled`：自动按论文周期交替 `null -> random -> adaptive -> ...`
+- `continuous_adaptive`：每个 cycle 都是 `adaptive`，但仍保留 `15 min` 训练 + `45 min` 休息
+- `null` / `random` / `adaptive`：固定单组运行，便于做单独对照
+
+连续自适应：
+```bash
+python3 maxlab_lib/closedloop/cartpole_selected_setup.py \
+  --selection-config SELECTION_JSON \
+  --mode continuous_adaptive \
+  --num-cycles 4 \
+  --wells 0
+```
+
+单组对照（示例：`random`）：
+```bash
+python3 maxlab_lib/closedloop/cartpole_selected_setup.py \
+  --selection-config SELECTION_JSON \
+  --mode random \
+  --num-cycles 1 \
   --wells 0
 ```
 
@@ -84,8 +89,8 @@ env -i HOME=$HOME PATH=/usr/bin:/bin DISPLAY=$DISPLAY XAUTHORITY=$XAUTHORITY LAN
   PYTHONPATH=/home/descfly/maxwell-code/.pydeps \
   python3 maxlab_lib/closedloop/cartpole_selected_setup.py \
   --selection-config SELECTION_JSON \
-  --duration 5 \
   --mode continuous_adaptive \
+  --num-cycles 1 \
   --wells 0 \
   --show-gui
 ```

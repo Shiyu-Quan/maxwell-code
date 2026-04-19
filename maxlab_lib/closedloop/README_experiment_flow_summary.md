@@ -132,8 +132,8 @@ python3 maxlab_lib/closedloop/cartpole_preexperiment.py full \
 cd /home/descfly/maxwell-code
 python3 maxlab_lib/closedloop/cartpole_selected_setup.py \
   --selection-config SELECTION_JSON \
-  --duration 15 \
-  --mode cycled_adaptive \
+  --mode cycled \
+  --num-cycles 3 \
   --wells 0
 ```
 

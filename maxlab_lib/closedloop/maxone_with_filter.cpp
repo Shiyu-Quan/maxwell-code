@@ -41,20 +41,23 @@ struct RunConfig {
     bool wait_for_sync = true;
     std::size_t channel_count = 1024;
     double experiment_duration_s = 900.0;
-    double cycle_duration_s = 900.0;
+    int num_cycles = 1;
+    double active_cycle_duration_s = 900.0;
     double rest_duration_s = 2700.0;
+    double first_cycle_pass_threshold_s = 10.0;
     double encoding_scale_a = 7.0;
     double encoding_scale_b = 0.15;
     double ema_alpha = 0.2;
     double force_scale_n = 10.0;
     double timestep_seconds = 0.2;
-    ClosedLoopMode mode = ClosedLoopMode::CycledAdaptive;
+    ExperimentMode mode = ExperimentMode::Cycled;
     SpikeDetectorConfig detector;
     std::vector<int> decoding_left_channels;
     std::vector<int> decoding_right_channels;
     std::string encoding_left_sequence;
     std::string encoding_right_sequence;
     std::vector<std::string> training_pattern_names;
+    std::vector<std::string> cycle_condition_schedule;
     std::vector<int> encoding_stim_electrodes;
     std::vector<int> training_stim_electrodes;
     std::vector<int> decoding_left_electrodes;
@@ -129,6 +132,11 @@ struct JsonParser {
 
     std::vector<int> intArrayValueOr(const std::string& key, const std::vector<int>& fallback) const {
         return hasKey(key) ? intArrayValue(key) : fallback;
+    }
+
+    std::vector<std::string> stringArrayValueOr(const std::string& key,
+                                                const std::vector<std::string>& fallback) const {
+        return hasKey(key) ? stringArrayValue(key) : fallback;
     }
 
     double numberValueOr(const std::string& key, double fallback) const {
@@ -225,8 +233,14 @@ struct EpisodeLogger {
                       double duration_s,
                       double mean_5,
                       double mean_20,
+                      int cycle_index,
+                      const std::string& cycle_condition,
+                      bool training_eligible,
                       bool training_delivered,
+                      const std::string& training_sequence_type,
                       const std::string& training_sequence,
+                      const std::string& training_electrodes,
+                      const std::string& termination_reason,
                       double theta_rad) {
         if (!stream.is_open()) return;
         stream << std::fixed << std::setprecision(6)
@@ -234,10 +248,24 @@ struct EpisodeLogger {
                << ",\"time_balanced_s\":" << duration_s
                << ",\"mean_5_s\":" << mean_5
                << ",\"mean_20_s\":" << mean_20
+               << ",\"cycle_index\":" << cycle_index
+               << ",\"cycle_condition\":\"" << cycle_condition << "\""
+               << ",\"training_eligible\":" << (training_eligible ? "true" : "false")
                << ",\"training_delivered\":" << (training_delivered ? "true" : "false")
+               << ",\"training_sequence_type\":\"" << training_sequence_type << "\""
                << ",\"training_sequence\":\"" << training_sequence << "\""
+               << ",\"training_electrodes\":\"" << training_electrodes << "\""
+               << ",\"termination_reason\":\"" << termination_reason << "\""
                << ",\"terminal_theta_rad\":" << theta_rad
                << "}\n";
+        stream.flush();
+    }
+
+    void writeSummary(const std::string& failure_reason) {
+        if (!stream.is_open()) return;
+        stream << "{\"event\":\"experiment_summary\",\"failure_reason\":\""
+               << failure_reason
+               << "\"}\n";
         stream.flush();
     }
 
@@ -255,6 +283,9 @@ struct AppState {
           logger(config.log_path),
           window(ui_window) {
         spike_counts.resize(config.channel_count, 0);
+        if (!config.cycle_condition_schedule.empty()) {
+            current_cycle_condition = config.cycle_condition_schedule.front();
+        }
     }
 
     SteadyClock::time_point window_start;
@@ -272,7 +303,12 @@ struct AppState {
     double right_phase = 0.0;
     bool was_active_phase = false;
     int episode_index = 0;
+    int current_cycle_index = 0;
+    bool first_cycle_passed = false;
     std::string last_training_sequence = "none";
+    std::string last_training_sequence_type = "none";
+    std::string last_training_electrodes = "[]";
+    std::string current_cycle_condition = "null";
 };
 
 void on_sigint(int) {
@@ -302,16 +338,134 @@ double sumCounts(const std::vector<std::uint32_t>& spike_counts, const std::vect
     return total;
 }
 
-bool isActivePhase(const RunConfig& config, double elapsed_seconds) {
-    if (config.mode == ClosedLoopMode::ContinuousAdaptive) {
-        return true;
+TrainingCondition parseTrainingCondition(const std::string& value) {
+    if (value == "random") return TrainingCondition::Random;
+    if (value == "adaptive") return TrainingCondition::Adaptive;
+    return TrainingCondition::Null;
+}
+
+const char* trainingConditionName(TrainingCondition condition) {
+    switch (condition) {
+        case TrainingCondition::Null:
+            return "null";
+        case TrainingCondition::Random:
+            return "random";
+        case TrainingCondition::Adaptive:
+            return "adaptive";
     }
-    const double cycle_span = config.cycle_duration_s + config.rest_duration_s;
+    return "null";
+}
+
+const char* experimentModeName(ExperimentMode mode) {
+    switch (mode) {
+        case ExperimentMode::Cycled:
+            return "cycled";
+        case ExperimentMode::ContinuousAdaptive:
+            return "continuous_adaptive";
+        case ExperimentMode::NullCondition:
+            return "null";
+        case ExperimentMode::RandomCondition:
+            return "random";
+        case ExperimentMode::AdaptiveCondition:
+            return "adaptive";
+    }
+    return "cycled";
+}
+
+int currentCycleIndex(const RunConfig& config, double elapsed_seconds) {
+    const double cycle_span = config.active_cycle_duration_s + config.rest_duration_s;
     if (cycle_span <= 0.0) {
-        return true;
+        return 0;
     }
+    const int raw_index = static_cast<int>(elapsed_seconds / cycle_span);
+    return std::clamp(raw_index, 0, (std::max)(config.num_cycles - 1, 0));
+}
+
+TrainingCondition currentTrainingCondition(const RunConfig& config, int cycle_index) {
+    if (config.cycle_condition_schedule.empty()) {
+        return TrainingCondition::Adaptive;
+    }
+    const int clamped_index = std::clamp(
+        cycle_index,
+        0,
+        static_cast<int>(config.cycle_condition_schedule.size() - 1));
+    return parseTrainingCondition(config.cycle_condition_schedule[static_cast<std::size_t>(clamped_index)]);
+}
+
+bool isActivePhase(const RunConfig& config, double elapsed_seconds) {
+    const double cycle_span = config.active_cycle_duration_s + config.rest_duration_s;
+    if (cycle_span <= 0.0) return true;
     const double offset = std::fmod(elapsed_seconds, cycle_span);
-    return offset < config.cycle_duration_s;
+    return offset < config.active_cycle_duration_s;
+}
+
+int trainingWindowForSequenceType(const std::string& sequence_type) {
+    if (sequence_type == "random5") {
+        return 200;
+    }
+    if (sequence_type == "adaptive_pair") {
+        return 300;
+    }
+    return 0;
+}
+
+std::vector<std::pair<int, int>> buildAdaptivePatternElectrodePairs(const std::vector<int>& electrodes) {
+    std::vector<std::pair<int, int>> result;
+    for (std::size_t first = 0; first < electrodes.size(); ++first) {
+        for (std::size_t second = first + 1; second < electrodes.size(); ++second) {
+            result.emplace_back(electrodes[first], electrodes[second]);
+        }
+    }
+    return result;
+}
+
+std::vector<int> parsePipeSeparatedIntList(const std::string& text) {
+    std::vector<int> values;
+    if (text.empty()) return values;
+    std::stringstream stream(text);
+    std::string token;
+    while (std::getline(stream, token, ',')) {
+        if (!token.empty()) {
+            values.push_back(std::stoi(token));
+        }
+    }
+    return values;
+}
+
+struct RequestedSequence {
+    std::string sequence_name;
+    std::string sequence_type;
+    std::vector<int> training_electrodes;
+};
+
+RequestedSequence requestRandomTrainingSequenceFromPython() {
+    std::cout << "[TRAINING_REQUEST] random5" << std::endl;
+    std::string response;
+    if (!std::getline(std::cin, response)) {
+        throw std::runtime_error("Failed to receive random training sequence from Python");
+    }
+    const std::string ok_prefix = "training_sequence|";
+    const std::string error_prefix = "training_sequence_error|";
+    if (response.rfind(error_prefix, 0) == 0) {
+        throw std::runtime_error(response.substr(error_prefix.size()));
+    }
+    if (response.rfind(ok_prefix, 0) != 0) {
+        throw std::runtime_error("Unexpected training sequence response: " + response);
+    }
+    std::vector<std::string> parts;
+    std::stringstream stream(response);
+    std::string token;
+    while (std::getline(stream, token, '|')) {
+        parts.push_back(token);
+    }
+    if (parts.size() != 4) {
+        throw std::runtime_error("Malformed training sequence response: " + response);
+    }
+    RequestedSequence requested;
+    requested.sequence_name = parts[1];
+    requested.sequence_type = parts[2];
+    requested.training_electrodes = parsePipeSeparatedIntList(parts[3]);
+    return requested;
 }
 
 double clampUnitForce(double force_scale_n, double left_rate, double right_rate) {
@@ -360,14 +514,101 @@ void updateWindow(AppState& state, const RunConfig& config, SteadyClock::time_po
 
     const double elapsed_seconds =
         std::chrono::duration<double>(now - state.experiment_start).count();
+    const int cycle_index = currentCycleIndex(config, elapsed_seconds);
+    const TrainingCondition cycle_condition = currentTrainingCondition(config, cycle_index);
     const bool active_phase = isActivePhase(config, elapsed_seconds);
+    state.current_cycle_index = cycle_index;
+    state.current_cycle_condition = trainingConditionName(cycle_condition);
+
+    const auto finalize_episode = [&](bool allow_training_delivery, const std::string& termination_reason) {
+        const double reward_seconds = state.task.getTimeBalanced();
+        if (reward_seconds <= 0.0) {
+            resetEpisodeState(state);
+            return;
+        }
+
+        const TrainingDecision decision =
+            state.trainer.onEpisodeEnd(reward_seconds, cycle_condition, allow_training_delivery);
+        ++state.episode_index;
+
+        std::string training_sequence = decision.sequence_name.empty() ? "none" : decision.sequence_name;
+        std::string training_sequence_type = decision.sequence_type.empty() ? "none" : decision.sequence_type;
+        std::vector<int> training_electrodes;
+
+        if (decision.delivered) {
+            if (training_sequence_type == "adaptive_pair" && decision.pattern_index >= 0) {
+                const auto adaptive_pairs = buildAdaptivePatternElectrodePairs(config.training_stim_electrodes);
+                const std::size_t pair_index = static_cast<std::size_t>(decision.pattern_index);
+                if (pair_index < adaptive_pairs.size()) {
+                    training_electrodes = {
+                        adaptive_pairs[pair_index].first,
+                        adaptive_pairs[pair_index].second,
+                    };
+                }
+            } else if (training_sequence_type == "random5") {
+                const RequestedSequence requested = requestRandomTrainingSequenceFromPython();
+                training_sequence = requested.sequence_name;
+                training_sequence_type = requested.sequence_type;
+                training_electrodes = requested.training_electrodes;
+            }
+        }
+
+        if (cycle_index == 0 && reward_seconds > config.first_cycle_pass_threshold_s) {
+            state.first_cycle_passed = true;
+        }
+
+        const std::string training_electrodes_text = joinIntVector(training_electrodes);
+        state.logger.writeEpisode(
+            state.episode_index,
+            reward_seconds,
+            decision.mean_5,
+            decision.mean_20,
+            cycle_index,
+            trainingConditionName(cycle_condition),
+            decision.eligible,
+            decision.delivered,
+            training_sequence_type,
+            training_sequence,
+            training_electrodes_text,
+            termination_reason,
+            state.task.getPoleAngleRad());
+
+        std::cout << std::fixed << std::setprecision(2)
+                  << "[EPISODE] index=" << state.episode_index
+                  << " cycle=" << cycle_index
+                  << " condition=" << trainingConditionName(cycle_condition)
+                  << " duration_s=" << reward_seconds
+                  << " mean5=" << decision.mean_5
+                  << " mean20=" << decision.mean_20
+                  << " training=" << (decision.delivered ? training_sequence : "none")
+                  << std::endl;
+
+        if (decision.delivered) {
+            maxlab::verifyStatus(maxlab::sendSequence(training_sequence.c_str()));
+            state.training_until = now + std::chrono::milliseconds(trainingWindowForSequenceType(training_sequence_type));
+            state.last_training_sequence = training_sequence;
+            state.last_training_sequence_type = training_sequence_type;
+            state.last_training_electrodes = training_electrodes_text;
+        } else {
+            state.last_training_sequence = "none";
+            state.last_training_sequence_type = "none";
+            state.last_training_electrodes = "[]";
+        }
+
+        resetEpisodeState(state);
+    };
 
     if (!active_phase && state.was_active_phase) {
-        resetEpisodeState(state);
+        finalize_episode(false, "cycle_end");
+        if (cycle_index == 0 && !state.first_cycle_passed) {
+            state.logger.writeSummary("first_cycle_under_10s_requires_reselection");
+            throw std::runtime_error("first_cycle_under_10s_requires_reselection");
+        }
     }
     state.was_active_phase = active_phase;
 
     if (elapsed_seconds >= config.experiment_duration_s) {
+        finalize_episode(false, "experiment_end");
         g_running = false;
         return;
     }
@@ -375,6 +616,19 @@ void updateWindow(AppState& state, const RunConfig& config, SteadyClock::time_po
     if (!active_phase) {
         if (state.window != nullptr) {
             state.window->setState(0.0f, 0.0f, 0.0f, 0.0f);
+            state.window->setTelemetry(
+                0.0f,
+                0.0f,
+                0.0f,
+                0.0f,
+                state.episode_index,
+                false,
+                state.current_cycle_index,
+                false,
+                state.current_cycle_condition,
+                state.last_training_sequence_type,
+                state.last_training_sequence,
+                state.last_training_electrodes);
         }
         resetWindow(state, now);
         return;
@@ -415,39 +669,17 @@ void updateWindow(AppState& state, const RunConfig& config, SteadyClock::time_po
             static_cast<float>(frequency_right),
             state.episode_index,
             now < state.training_until,
-            state.last_training_sequence);
+            state.current_cycle_index,
+            true,
+            state.current_cycle_condition,
+            state.last_training_sequence_type,
+            state.last_training_sequence,
+            state.last_training_electrodes);
     }
 
     if (terminal) {
-        const double reward_seconds = state.task.getTimeBalanced();
-        const TrainingDecision decision = state.trainer.onEpisodeEnd(reward_seconds);
-        ++state.episode_index;
-        state.logger.writeEpisode(
-            state.episode_index,
-            reward_seconds,
-            decision.mean_5,
-            decision.mean_20,
-            decision.delivered,
-            decision.sequence_name,
-            theta);
-
-        std::cout << std::fixed << std::setprecision(2)
-                  << "[EPISODE] index=" << state.episode_index
-                  << " duration_s=" << reward_seconds
-                  << " mean5=" << decision.mean_5
-                  << " mean20=" << decision.mean_20
-                  << " training=" << (decision.delivered ? decision.sequence_name : "none")
-                  << std::endl;
-
-        if (decision.delivered) {
-            maxlab::verifyStatus(maxlab::sendSequence(decision.sequence_name.c_str()));
-            state.training_until = now + std::chrono::milliseconds(config.training_window_ms);
-            state.last_training_sequence = decision.sequence_name;
-        } else {
-            state.last_training_sequence = "none";
-        }
-
-        resetEpisodeState(state);
+        (void)theta;
+        finalize_episode(true, "terminal");
     }
 
     resetWindow(state, now);
@@ -489,8 +721,10 @@ RunConfig loadConfig(const std::string& config_path) {
     config.wait_for_sync = parser.boolValue("wait_for_sync");
     config.channel_count = static_cast<std::size_t>(parser.numberValue("channel_count"));
     config.experiment_duration_s = parser.numberValue("experiment_duration_s");
-    config.cycle_duration_s = parser.numberValue("cycle_duration_s");
+    config.num_cycles = static_cast<int>(parser.numberValue("num_cycles"));
+    config.active_cycle_duration_s = parser.numberValue("active_cycle_duration_s");
     config.rest_duration_s = parser.numberValue("rest_duration_s");
+    config.first_cycle_pass_threshold_s = parser.numberValue("first_cycle_pass_threshold_s");
     config.encoding_scale_a = parser.numberValue("encoding_scale_a");
     config.encoding_scale_b = parser.numberValue("encoding_scale_b");
     config.ema_alpha = parser.numberValue("ema_alpha");
@@ -503,7 +737,10 @@ RunConfig loadConfig(const std::string& config_path) {
     config.decoding_right_channels = parser.intArrayValue("decoding_right_channels");
     config.encoding_left_sequence = parser.stringValue("encoding_left_sequence");
     config.encoding_right_sequence = parser.stringValue("encoding_right_sequence");
-    config.training_pattern_names = parser.stringArrayValue("training_pattern_names");
+    config.cycle_condition_schedule = parser.stringArrayValue("cycle_condition_schedule");
+    config.training_pattern_names =
+        parser.stringArrayValueOr("adaptive_training_pattern_names",
+                                  parser.stringArrayValueOr("training_pattern_names", {}));
     config.encoding_stim_electrodes = parser.intArrayValueOr("encoding_stim_electrodes", {});
     config.training_stim_electrodes = parser.intArrayValueOr("training_stim_electrodes", {});
     config.decoding_left_electrodes = parser.intArrayValueOr("decoding_left_electrodes", {});
@@ -519,9 +756,19 @@ RunConfig loadConfig(const std::string& config_path) {
     config.random_seed = static_cast<std::uint32_t>(parser.numberValue("random_seed"));
 
     const std::string mode = parser.stringValue("mode");
-    config.mode = (mode == "continuous_adaptive")
-                      ? ClosedLoopMode::ContinuousAdaptive
-                      : ClosedLoopMode::CycledAdaptive;
+    if (mode == "cycled") {
+        config.mode = ExperimentMode::Cycled;
+    } else if (mode == "continuous_adaptive") {
+        config.mode = ExperimentMode::ContinuousAdaptive;
+    } else if (mode == "null") {
+        config.mode = ExperimentMode::NullCondition;
+    } else if (mode == "random") {
+        config.mode = ExperimentMode::RandomCondition;
+    } else if (mode == "adaptive") {
+        config.mode = ExperimentMode::AdaptiveCondition;
+    } else {
+        throw std::runtime_error("Unsupported mode in config: " + mode);
+    }
     config.timestep_seconds = static_cast<double>(config.read_window_ms) / 1000.0;
     return config;
 }
@@ -598,8 +845,7 @@ int main(int argc, char* argv[]) {
               << " read_window_ms=" << config.read_window_ms
               << " training_window_ms=" << config.training_window_ms
               << " artifact_filter_mode=" << config.artifact_filter_mode
-              << " mode="
-              << (config.mode == ClosedLoopMode::ContinuousAdaptive ? "continuous_adaptive" : "cycled_adaptive")
+              << " mode=" << experimentModeName(config.mode)
               << " duration_s=" << config.experiment_duration_s
               << std::endl;
 

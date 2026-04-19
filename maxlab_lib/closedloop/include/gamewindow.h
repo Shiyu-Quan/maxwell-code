@@ -19,7 +19,12 @@ public:
         float rightFrequencyHz,
         int episodeIndex,
         bool trainingActive,
-        const std::string& lastTrainingSequence);
+        int cycleIndex,
+        bool activePhase,
+        const std::string& cycleCondition,
+        const std::string& lastTrainingSequenceType,
+        const std::string& lastTrainingSequence,
+        const std::string& lastTrainingElectrodes);
     void setRuntimeInfo(
         const std::string& encodingElectrodes,
         const std::string& trainingElectrodes,
@@ -44,6 +49,8 @@ private:
     std::atomic<float> right_frequency_hz_;
     std::atomic<int> episode_index_;
     std::atomic<int> training_active_;
+    std::atomic<int> cycle_index_;
+    std::atomic<int> active_phase_;
     std::atomic<float> pulse_amplitude_micro_v_;
     std::atomic<int> training_patterns_;
     std::atomic<int> read_window_ms_;
@@ -53,14 +60,18 @@ private:
     std::string training_electrodes_text_;
     std::string decoding_left_electrodes_text_;
     std::string decoding_right_electrodes_text_;
+    std::string cycle_condition_text_;
+    std::string last_training_sequence_type_;
     std::string last_training_sequence_;
+    std::string last_training_electrodes_;
 };
 #else
 class GameWindow {
 public:
     explicit GameWindow(void* parent = nullptr) { (void)parent; }
     void setState(float, float, float, float) {}
-    void setTelemetry(float, float, float, float, int, bool, const std::string&) {}
+    void setTelemetry(float, float, float, float, int, bool, int, bool, const std::string&,
+                      const std::string&, const std::string&, const std::string&) {}
     void setRuntimeInfo(const std::string&, const std::string&, const std::string&, const std::string&,
                         float, int, int, int) {}
 };

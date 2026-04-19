@@ -13,11 +13,10 @@ from typing import Any, Dict, List, Sequence
 import maxlab as mx
 
 from cartpole_setup import (
-    CYCLE_DURATION_S,
     CPP_EXECUTABLE,
+    PAPER_MODE_CHOICES,
     RECORDING_DIR,
     RECORDING_ELECTRODES,
-    REST_DURATION_S,
     CPPProcessManager,
     build_stim_candidate_electrodes,
     configure_and_powerup_stim_units,
@@ -25,12 +24,17 @@ from cartpole_setup import (
     connect_stim_units_to_stim_electrodes,
     export_runtime_config,
     initialize_system,
+    make_training_request_handler,
     prepare_encoding_sequences,
-    prepare_training_sequences,
+    prepare_adaptive_training_sequences,
     print_info,
     print_success,
+    requires_adaptive_patterns,
+    requires_random_bridge,
     start_recording,
     stop_recording,
+    validate_mode_requirements as validate_mode_requirements_common,
+    RandomTrainingSequenceManager,
 )
 
 
@@ -59,36 +63,27 @@ def load_selection_config(selection_config_path: Path) -> Dict[str, Any]:
     return parsed
 
 
+def validate_mode_requirements(mode: str, training_stim_electrodes: Sequence[int]) -> None:
+    validate_mode_requirements_common(mode, training_stim_electrodes)
+
+
 def run_selected_cartpole_experiment(
-    duration_minutes: int,
     mode: str,
     wells: Sequence[int],
     show_gui: bool,
     selection_config_path: Path,
-    num_cycles: int | None = None,
+    num_cycles: int,
 ) -> None:
-    if mode not in {"cycled_adaptive", "continuous_adaptive"}:
+    if mode not in PAPER_MODE_CHOICES:
         raise ValueError(f"Unsupported mode: {mode}")
     if not os.path.exists(CPP_EXECUTABLE):
         raise RuntimeError(f"C++ executable not found: {CPP_EXECUTABLE}")
-    if num_cycles is not None and num_cycles <= 0:
+    if num_cycles <= 0:
         raise ValueError(f"num_cycles must be > 0, got {num_cycles}")
-
-    effective_duration_minutes = int(duration_minutes)
-    if num_cycles is not None:
-        if mode == "cycled_adaptive":
-            one_cycle_minutes = int((CYCLE_DURATION_S + REST_DURATION_S) / 60.0)
-            effective_duration_minutes = int(num_cycles * one_cycle_minutes)
-            print_info(
-                f"Using cycle-based duration: cycles={num_cycles}, "
-                f"one_cycle={one_cycle_minutes} min (15 train + 45 rest), "
-                f"total={effective_duration_minutes} min"
-            )
-        else:
-            print_info(
-                f"--num-cycles={num_cycles} ignored in mode={mode}; "
-                f"using --duration={effective_duration_minutes} min"
-            )
+    print_info(
+        f"Using paper-aligned cycle count: cycles={num_cycles}, "
+        "one_cycle=60 min (15 train + 45 rest)"
+    )
 
     selection = load_selection_config(selection_config_path)
     encoding_stim_electrodes = selection["encoding_stim_electrodes"]
@@ -96,6 +91,7 @@ def run_selected_cartpole_experiment(
     decoding_left_electrodes = selection["decoding_left_electrodes"]
     decoding_right_electrodes = selection["decoding_right_electrodes"]
     recording_electrodes = selection["recording_electrodes"]
+    validate_mode_requirements(mode, training_stim_electrodes)
     print_info(
         "Using recording electrodes from "
         f"{selection['recording_electrodes_source']}: count={len(recording_electrodes)}"
@@ -133,7 +129,16 @@ def run_selected_cartpole_experiment(
     training_units = [electrode_to_unit[electrode] for electrode in resolved_training]
 
     prepare_encoding_sequences(encoding_units, all_units)
-    training_pattern_names = prepare_training_sequences(training_units, all_units)
+    adaptive_pattern_names = (
+        prepare_adaptive_training_sequences(training_units, all_units)
+        if requires_adaptive_patterns(mode, num_cycles)
+        else []
+    )
+    random_sequence_manager = (
+        RandomTrainingSequenceManager(resolved_training, training_units, all_units)
+        if requires_random_bridge(mode, num_cycles)
+        else None
+    )
 
     config = array.get_config()
     decoding_left_channels = config.get_channels_for_electrodes(decoding_left_electrodes)
@@ -150,15 +155,19 @@ def run_selected_cartpole_experiment(
         training_stim_electrodes=resolved_training,
         decoding_left_electrodes=decoding_left_electrodes,
         decoding_right_electrodes=decoding_right_electrodes,
-        training_pattern_names=training_pattern_names,
+        adaptive_pattern_names=adaptive_pattern_names,
         log_path=log_path,
-        duration_minutes=effective_duration_minutes,
+        num_cycles=num_cycles,
         mode=mode,
         show_gui=show_gui,
     )
     print_success(f"Runtime config written to {config_path}")
 
-    cpp = CPPProcessManager(CPP_EXECUTABLE, config_path)
+    cpp = CPPProcessManager(
+        CPP_EXECUTABLE,
+        config_path,
+        line_handler=make_training_request_handler(random_sequence_manager),
+    )
     cpp.start()
     saving = start_recording(session_name, wells)
 
@@ -180,21 +189,17 @@ def run_selected_cartpole_experiment(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Cartpole closed-loop experiment using selection_config")
-    parser.add_argument("--duration", type=int, default=15, help="Experiment duration in minutes")
     parser.add_argument(
         "--num-cycles",
         type=int,
-        default=None,
-        help=(
-            "Number of experiment cycles (only for cycled_adaptive). "
-            "One cycle = 15 min train + 45 min rest."
-        ),
+        required=True,
+        help="Number of experiment cycles. One cycle = 15 min training + 45 min rest.",
     )
     parser.add_argument(
         "--mode",
         type=str,
-        default="cycled_adaptive",
-        choices=["cycled_adaptive", "continuous_adaptive"],
+        default="cycled",
+        choices=list(PAPER_MODE_CHOICES),
     )
     parser.add_argument("--wells", type=int, nargs="+", default=[0])
     parser.add_argument("--show-gui", action="store_true")
@@ -202,7 +207,6 @@ def main() -> int:
     args = parser.parse_args()
 
     run_selected_cartpole_experiment(
-        duration_minutes=args.duration,
         mode=args.mode,
         wells=args.wells,
         show_gui=args.show_gui,
