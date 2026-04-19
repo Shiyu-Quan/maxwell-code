@@ -13,9 +13,11 @@ from typing import Any, Dict, List, Sequence
 import maxlab as mx
 
 from cartpole_setup import (
+    CYCLE_DURATION_S,
     CPP_EXECUTABLE,
     RECORDING_DIR,
     RECORDING_ELECTRODES,
+    REST_DURATION_S,
     CPPProcessManager,
     build_stim_candidate_electrodes,
     configure_and_powerup_stim_units,
@@ -63,11 +65,30 @@ def run_selected_cartpole_experiment(
     wells: Sequence[int],
     show_gui: bool,
     selection_config_path: Path,
+    num_cycles: int | None = None,
 ) -> None:
     if mode not in {"cycled_adaptive", "continuous_adaptive"}:
         raise ValueError(f"Unsupported mode: {mode}")
     if not os.path.exists(CPP_EXECUTABLE):
         raise RuntimeError(f"C++ executable not found: {CPP_EXECUTABLE}")
+    if num_cycles is not None and num_cycles <= 0:
+        raise ValueError(f"num_cycles must be > 0, got {num_cycles}")
+
+    effective_duration_minutes = int(duration_minutes)
+    if num_cycles is not None:
+        if mode == "cycled_adaptive":
+            one_cycle_minutes = int((CYCLE_DURATION_S + REST_DURATION_S) / 60.0)
+            effective_duration_minutes = int(num_cycles * one_cycle_minutes)
+            print_info(
+                f"Using cycle-based duration: cycles={num_cycles}, "
+                f"one_cycle={one_cycle_minutes} min (15 train + 45 rest), "
+                f"total={effective_duration_minutes} min"
+            )
+        else:
+            print_info(
+                f"--num-cycles={num_cycles} ignored in mode={mode}; "
+                f"using --duration={effective_duration_minutes} min"
+            )
 
     selection = load_selection_config(selection_config_path)
     encoding_stim_electrodes = selection["encoding_stim_electrodes"]
@@ -131,7 +152,7 @@ def run_selected_cartpole_experiment(
         decoding_right_electrodes=decoding_right_electrodes,
         training_pattern_names=training_pattern_names,
         log_path=log_path,
-        duration_minutes=duration_minutes,
+        duration_minutes=effective_duration_minutes,
         mode=mode,
         show_gui=show_gui,
     )
@@ -161,6 +182,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Cartpole closed-loop experiment using selection_config")
     parser.add_argument("--duration", type=int, default=15, help="Experiment duration in minutes")
     parser.add_argument(
+        "--num-cycles",
+        type=int,
+        default=None,
+        help=(
+            "Number of experiment cycles (only for cycled_adaptive). "
+            "One cycle = 15 min train + 45 min rest."
+        ),
+    )
+    parser.add_argument(
         "--mode",
         type=str,
         default="cycled_adaptive",
@@ -177,6 +207,7 @@ def main() -> int:
         wells=args.wells,
         show_gui=args.show_gui,
         selection_config_path=args.selection_config,
+        num_cycles=args.num_cycles,
     )
     return 0
 

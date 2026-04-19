@@ -68,6 +68,15 @@ python3 maxlab_lib/closedloop/cartpole_selected_setup.py \
   --wells 0
 ```
 
+按实验周期运行（`1`周期=`15`分钟训练+`45`分钟休息）：
+```bash
+python3 maxlab_lib/closedloop/cartpole_selected_setup.py \
+  --selection-config SELECTION_JSON \
+  --mode cycled_adaptive \
+  --num-cycles 3 \
+  --wells 0
+```
+
 GUI（Snap/IDE 冲突时使用干净环境）：
 ```bash
 cd /home/descfly/maxwell-code
